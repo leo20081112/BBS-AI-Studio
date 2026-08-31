@@ -1,0 +1,98 @@
+name: build
+
+# BBS AI Studio CI：Java Mod 构建 + Python 工具链语法检查
+# 推送 v* 标签时自动构建并把 Mod jar 发布到 GitHub Release
+
+on:
+  push:
+    branches: [ "master", "main", "1.21.1", "1.20.1", "1.21.11" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master", "main", "1.21.1" ]
+  workflow_dispatch:
+
+jobs:
+  java:
+    name: Java mod
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile (main + client source sets)
+        run: ./gradlew compileJava compileClientJava --no-daemon --stacktrace
+
+      - name: Full build
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Upload mod jar (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbs-ai-studio
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+  python:
+    name: Python toolchain
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Syntax check
+        run: |
+          cd bbs-ai-toolchain
+          python -m compileall -q core main.py cli.py
+
+      - name: Contract round-trip test
+        run: |
+          cd bbs-ai-toolchain
+          python -c "import json; from core import MotionData, MotionFrame, BonePose; d=MotionData(); d.keyframes.append(MotionFrame(tick=0, bones={'head': BonePose([1,2,3])})); d.stamp('video','t.mp4',30,1,'mediapipe'); p=MotionData.from_dict(json.loads(d.to_json())); assert p.keyframes[0].bones['head'].rotation[0]==1.0; print('contract OK')"
+
+  release:
+    name: Release (attach mod jars)
+    # 仅在推送 v* 标签时触发：构建产物自动挂到 GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ java, python ]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release jar
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Create GitHub Release with jars
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+          generate_release_notes: true

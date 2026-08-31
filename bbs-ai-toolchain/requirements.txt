@@ -1,0 +1,23 @@
+# BBS AI Studio 外部工具链依赖
+# Python 3.10+
+
+# 视频处理
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# 姿态估计（三选一，按需安装）
+mediapipe>=0.10.0            # 推荐：33 关键点，轻量
+# ultralytics>=8.1.0         # YOLOv8-pose：17 关键点，更高精度
+# onnxruntime>=1.17.0        # RTMPose ONNX 推理
+
+# 配置解密（与游戏内共享加密配置）
+cryptography>=41.0.0
+
+# API 通信
+requests>=2.31.0
+
+# GUI
+gradio>=4.0.0
+
+# 打包（可选）
+# pyinstaller>=6.0.0

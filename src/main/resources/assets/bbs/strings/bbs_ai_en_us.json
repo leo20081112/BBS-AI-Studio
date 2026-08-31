@@ -1,0 +1,85 @@
+{
+    "settings.bbs_ai.ai.titles.mode": "AI working mode",
+    "settings.bbs_ai.ai.titles.provider": "API provider",
+    "settings.bbs_ai.ai.titles.base_url": "Base URL (proxy supported)",
+    "settings.bbs_ai.ai.titles.model": "Model name",
+    "settings.bbs_ai.ai.titles.temperature": "Temperature (0.0 ~ 2.0)",
+    "settings.bbs_ai.ai.titles.max_tokens": "Max tokens (256 ~ 8192)",
+
+    "settings.bbs_ai.motion.titles.pose_model": "Pose estimation model",
+    "settings.bbs_ai.motion.titles.sample_rate": "Frame sampling (every N frames)",
+    "settings.bbs_ai.motion.titles.min_confidence": "Minimum keypoint confidence",
+    "settings.bbs_ai.motion.titles.smoothing": "Motion smoothing strength",
+    "settings.bbs_ai.motion.titles.foot_lock": "Foot lock",
+
+    "settings.bbs_ai.preview.titles.onion_frames": "Onion skin frame range",
+    "settings.bbs_ai.preview.titles.onion_next_color": "Onion skin color (next)",
+    "settings.bbs_ai.preview.titles.onion_prev_color": "Onion skin color (previous)",
+    "settings.bbs_ai.preview.titles.highlight_color": "Preview highlight color",
+    "settings.bbs_ai.preview.titles.conflict_color": "Conflict marker color",
+    "settings.bbs_ai.preview.titles.debounce_ms": "Preview debounce (ms)",
+
+    "settings.bbs_ai.import.titles.watch_enabled": "Watch import folders",
+
+    "settings.bbs_ai.ik.titles.default_chain_length": "IK default chain length",
+    "settings.bbs_ai.ik.titles.default_influence": "IK default FK/IK influence",
+    "settings.bbs_ai.ik.titles.default_pole_angle": "IK default pole angle",
+    "settings.bbs_ai.ik.titles.ik_mode": "IK mode",
+
+    "settings.bbs_ai.interface.titles.theme": "UI theme",
+    "settings.bbs_ai.interface.titles.language": "UI language",
+    "settings.bbs_ai.interface.titles.operation_mode": "Operation mode",
+    "settings.bbs_ai.interface.titles.guide_seen": "First-time guide seen",
+
+    "bbs.ai.title": "BBS AI Studio",
+    "bbs.ai.local_mode": "Local mode",
+    "bbs.ai.api_mode": "API mode",
+    "bbs.ai.provider": "API provider",
+    "bbs.ai.api_key": "API key (encrypted)",
+    "bbs.ai.model": "Model",
+    "bbs.ai.test_connection": "Test connection",
+    "bbs.ai.recognize": "Video pose recognition",
+    "bbs.ai.storyboard": "Storyboard generation",
+    "bbs.ai.import_panel": "Import manager",
+
+    "bbs.preview.enter": "Enter preview",
+    "bbs.preview.bake": "Bake",
+    "bbs.preview.discard": "Discard preview",
+    "bbs.preview.onion_skin": "Onion skin",
+
+    "bbs.ik.mode_native": "Native IK",
+    "bbs.ik.mode_blender": "Blender-style IK",
+    "bbs.ik.pole_target": "Pole target",
+    "bbs.ik.chain_length": "Chain length",
+    "bbs.ik.influence": "FK/IK influence",
+    "bbs.ik.follow": "Follow (anchor)",
+
+    "bbs.theme.classic": "Classic BBS",
+    "bbs.theme.blender": "Blender dark",
+    "bbs.theme.mineimator": "Mine-imator",
+
+    "bbs.import.internal": "In-game generated",
+    "bbs.import.external": "External import",
+    "bbs.import.scan": "Scan folders",
+
+    "bbs.transform.grab": "Grab (G)",
+    "bbs.transform.rotate": "Rotate (R)",
+    "bbs.transform.scale": "Scale (S)",
+    "bbs.transform.confirm": "Confirm",
+    "bbs.transform.cancel": "Cancel",
+
+    "bbs.timeline.play": "Play (Space)",
+    "bbs.timeline.pause": "Pause",
+    "bbs.timeline.prev_frame": "Previous frame (←)",
+    "bbs.timeline.next_frame": "Next frame (→)",
+
+    "bbs.viewport.nav_rotate": "MMB orbit",
+    "bbs.viewport.nav_pan": "Shift+MMB pan",
+    "bbs.viewport.nav_zoom": "Wheel zoom",
+    "bbs.viewport.focus": "Focus selected (.)",
+
+    "key.bbs.ai_preview": "Toggle preview mode (AI)",
+    "key.bbs.ai_import": "Open import panel (AI)",
+    "key.bbs.ai_recognize": "Quick recognition (AI)",
+    "key.bbs.ai_storyboard": "Storyboard generation (AI)"
+}
