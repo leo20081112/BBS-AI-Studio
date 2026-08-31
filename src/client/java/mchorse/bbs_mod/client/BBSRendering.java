@@ -237,7 +237,19 @@ public class BBSRendering
             return;
         }
 
-        IrisUtils.setup();
+        /* The installed Iris can be present, yet too old (or too new) for the classes this
+         * integration was compiled against — a hard NoClassDefFoundError here would crash
+         * the whole game on startup. Degrade gracefully instead: disable the shader
+         * integration and let every other feature run as usual. */
+        try
+        {
+            IrisUtils.setup();
+        }
+        catch (Throwable t)
+        {
+            iris = false;
+            System.err.println("[BBS] The installed Iris version is incompatible with the shader integration (update Iris to the version suggested by BBS to enable it). Iris features are disabled. Cause: " + t);
+        }
     }
 
     /* Framebuffers */
