@@ -54,7 +54,7 @@ def resolve_config(uuid: str) -> AIConfig:
 # ----------------------------------------------------------------------
 
 def process_video(video, sample_every, backend, mirror, smoothing, foot_lock,
-                  min_confidence, uuid, offset_x, offset_y, offset_z, scale):
+                  min_confidence, uuid, offset_x, offset_y, offset_z, scale, rtm_model):
     """单视频处理：抽帧 → 姿态估计 → 骨骼映射 → 导出"""
 
     if video is None:
@@ -73,8 +73,10 @@ def process_video(video, sample_every, backend, mirror, smoothing, foot_lock,
             return "视频读取失败：没有帧", None
 
         # 姿态估计
+        estimator_kwargs = {"model_path": rtm_model} if backend == "rtmpose" else {}
+
         keypoints = []
-        estimator = create_estimator(backend)
+        estimator = create_estimator(backend, **estimator_kwargs)
 
         with estimator:
             for index, frame in enumerate(frames):
@@ -204,7 +206,9 @@ def build_ui() -> gr.Blocks:
                 with gr.Column():
                     video_input = gr.Video(label="输入视频（mp4/avi/mov/webm）")
                     sample_every = gr.Slider(1, 10, value=2, step=1, label="抽帧间隔（每 N 帧取 1 帧）")
-                    backend = gr.Radio(["mediapipe", "yolov8", "rtmpose"], value="mediapipe", label="姿态估计后端")
+                    backend = gr.Radio(["mediapipe", "yolov8", "rtmpose"], value="mediapipe", label="姿态估计后端（打包 exe 请用 rtmpose）")
+                    rtm_model = gr.Textbox(label="RTMPose ONNX 模型路径（后端选 rtmpose 时必填）",
+                                           placeholder="例如 rtmpose-m.onnx（SimCC 输出，输入 192x256）")
                     mirror = gr.Checkbox(value=False, label="镜像（前置摄像头视频）")
                     smoothing = gr.Slider(0.0, 1.0, value=0.5, step=0.05, label="平滑强度")
                     foot_lock = gr.Checkbox(value=True, label="脚部锁定 (Foot Lock)")
@@ -230,7 +234,7 @@ def build_ui() -> gr.Blocks:
             process_button.click(
                 process_video,
                 inputs=[video_input, sample_every, backend, mirror, smoothing, foot_lock,
-                        min_confidence, uuid_box, offset_x, offset_y, offset_z, scale],
+                        min_confidence, uuid_box, offset_x, offset_y, offset_z, scale, rtm_model],
                 outputs=[result_box, output_file],
             )
 

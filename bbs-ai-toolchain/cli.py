@@ -53,8 +53,10 @@ def convert(args) -> int:
 
     print("姿态估计（%s）..." % args.backend)
 
+    estimator_kwargs = {"model_path": args.model} if args.backend == "rtmpose" else {}
+
     keypoints = []
-    estimator = create_estimator(args.backend)
+    estimator = create_estimator(args.backend, **estimator_kwargs)
 
     with estimator:
         for index, frame in enumerate(frames):
@@ -139,6 +141,7 @@ def _run_convert(video: str, args) -> int:
     inner.output = None
     inner.sample = args.sample
     inner.backend = args.backend
+    inner.model = getattr(args, "model", None)
     inner.mirror = args.mirror
     inner.smoothing = args.smoothing
     inner.min_confidence = args.min_confidence
@@ -208,6 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
     convert_parser.add_argument("-o", "--output", help="输出 JSON 路径（默认 config/bbs/imports/）")
     convert_parser.add_argument("--sample", type=int, default=2, help="抽帧间隔（默认 2）")
     convert_parser.add_argument("--backend", default="mediapipe", choices=["mediapipe", "yolov8", "rtmpose"])
+    convert_parser.add_argument("--model", help="RTMPose 的 ONNX 模型路径（--backend rtmpose 时必填）")
     convert_parser.add_argument("--mirror", action="store_true", help="镜像左右")
     convert_parser.add_argument("--smoothing", type=float, default=0.5, help="平滑强度 0~1")
     convert_parser.add_argument("--min-confidence", type=float, default=0.3, help="关键点最低置信度")
@@ -224,6 +228,7 @@ def build_parser() -> argparse.ArgumentParser:
     batch_parser.add_argument("--output", help="输出目录（默认 config/bbs/imports/）")
     batch_parser.add_argument("--sample", type=int, default=2)
     batch_parser.add_argument("--backend", default="mediapipe", choices=["mediapipe", "yolov8", "rtmpose"])
+    batch_parser.add_argument("--model", help="RTMPose 的 ONNX 模型路径（--backend rtmpose 时必填）")
     batch_parser.add_argument("--mirror", action="store_true")
     batch_parser.add_argument("--smoothing", type=float, default=0.5)
     batch_parser.add_argument("--min-confidence", type=float, default=0.3)
