@@ -1,0 +1,85 @@
+{
+    "settings.bbs_ai.ai.titles.mode": "AI 工作模式",
+    "settings.bbs_ai.ai.titles.provider": "API 廠商",
+    "settings.bbs_ai.ai.titles.base_url": "Base URL（支援代理）",
+    "settings.bbs_ai.ai.titles.model": "模型名稱",
+    "settings.bbs_ai.ai.titles.temperature": "取樣溫度 (0.0 ~ 2.0)",
+    "settings.bbs_ai.ai.titles.max_tokens": "最大 Token 數 (256 ~ 8192)",
+
+    "settings.bbs_ai.motion.titles.pose_model": "姿態估計模型",
+    "settings.bbs_ai.motion.titles.sample_rate": "抽幀間隔（每 N 幀取 1 幀）",
+    "settings.bbs_ai.motion.titles.min_confidence": "關鍵點最低信心度",
+    "settings.bbs_ai.motion.titles.smoothing": "動作平滑強度",
+    "settings.bbs_ai.motion.titles.foot_lock": "腳部鎖定 (Foot Lock)",
+
+    "settings.bbs_ai.preview.titles.onion_frames": "洋蔥皮幀數範圍",
+    "settings.bbs_ai.preview.titles.onion_next_color": "洋蔥皮·前幀顏色（未來）",
+    "settings.bbs_ai.preview.titles.onion_prev_color": "洋蔥皮·後幀顏色（過去）",
+    "settings.bbs_ai.preview.titles.highlight_color": "預覽高亮顏色",
+    "settings.bbs_ai.preview.titles.conflict_color": "衝突標記顏色",
+    "settings.bbs_ai.preview.titles.debounce_ms": "預覽防抖時間（毫秒）",
+
+    "settings.bbs_ai.import.titles.watch_enabled": "自動監聽匯入目錄",
+
+    "settings.bbs_ai.ik.titles.default_chain_length": "IK 預設鏈長度",
+    "settings.bbs_ai.ik.titles.default_influence": "IK 預設 FK/IK 混合",
+    "settings.bbs_ai.ik.titles.default_pole_angle": "IK 預設極向角度",
+    "settings.bbs_ai.ik.titles.ik_mode": "IK 模式",
+
+    "settings.bbs_ai.interface.titles.theme": "介面主題",
+    "settings.bbs_ai.interface.titles.language": "介面語言",
+    "settings.bbs_ai.interface.titles.operation_mode": "操作模式",
+    "settings.bbs_ai.interface.titles.guide_seen": "已看過新手引導",
+
+    "bbs.ai.title": "BBS AI Studio",
+    "bbs.ai.local_mode": "本機模式",
+    "bbs.ai.api_mode": "API 模式",
+    "bbs.ai.provider": "API 廠商",
+    "bbs.ai.api_key": "API 金鑰（加密儲存）",
+    "bbs.ai.model": "模型",
+    "bbs.ai.test_connection": "測試連線",
+    "bbs.ai.recognize": "影片骨骼識別",
+    "bbs.ai.storyboard": "分鏡生成",
+    "bbs.ai.import_panel": "匯入管理",
+
+    "bbs.preview.enter": "進入預覽",
+    "bbs.preview.bake": "確認烘焙",
+    "bbs.preview.discard": "放棄預覽",
+    "bbs.preview.onion_skin": "洋蔥皮",
+
+    "bbs.ik.mode_native": "原生 IK",
+    "bbs.ik.mode_blender": "Blender 風格 IK",
+    "bbs.ik.pole_target": "極向目標",
+    "bbs.ik.chain_length": "鏈長度",
+    "bbs.ik.influence": "FK/IK 混合",
+    "bbs.ik.follow": "錨點跟隨 (Follow)",
+
+    "bbs.theme.classic": "經典 BBS",
+    "bbs.theme.blender": "Blender 深色",
+    "bbs.theme.mineimator": "Mine-imator",
+
+    "bbs.import.internal": "遊戲內生成",
+    "bbs.import.external": "外部匯入",
+    "bbs.import.scan": "掃描目錄",
+
+    "bbs.transform.grab": "移動 (G)",
+    "bbs.transform.rotate": "旋轉 (R)",
+    "bbs.transform.scale": "縮放 (S)",
+    "bbs.transform.confirm": "確認",
+    "bbs.transform.cancel": "取消",
+
+    "bbs.timeline.play": "播放 (空白鍵)",
+    "bbs.timeline.pause": "暫停",
+    "bbs.timeline.prev_frame": "上一幀 (←)",
+    "bbs.timeline.next_frame": "下一幀 (→)",
+
+    "bbs.viewport.nav_rotate": "中鍵旋轉",
+    "bbs.viewport.nav_pan": "Shift+中鍵平移",
+    "bbs.viewport.nav_zoom": "滾輪縮放",
+    "bbs.viewport.focus": "聚焦選中 (.)",
+
+    "key.bbs.ai_preview": "切換預覽模式 (AI)",
+    "key.bbs.ai_import": "開啟匯入面板 (AI)",
+    "key.bbs.ai_recognize": "快速識別 (AI)",
+    "key.bbs.ai_storyboard": "分鏡生成 (AI)"
+}
