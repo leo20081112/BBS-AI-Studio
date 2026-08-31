@@ -226,7 +226,19 @@ def create_estimator(backend: str, **kwargs) -> PoseEstimator:
     backend = (backend or "mediapipe").lower()
 
     if backend in ("mediapipe", "mediapipe_pose"):
-        return MediaPipePoseEstimator(**kwargs)
+        try:
+            return MediaPipePoseEstimator(**kwargs)
+        except ImportError:
+            # PyInstaller 打包版不内置 mediapipe（与冻结环境不兼容），
+            # 给出可操作的指引而不是裸的 ImportError
+            import sys
+
+            if getattr(sys, "frozen", False):
+                raise ImportError(
+                    "打包版未内置 mediapipe 后端。请改用 rtmpose 后端（--backend rtmpose --model <RTMPose 的 ONNX 模型文件>），或使用 Python 版工具链（pip install mediapipe）"
+                )
+
+            raise
 
     if backend in ("yolo", "yolov8"):
         return YoloPoseEstimator(**kwargs)
@@ -235,7 +247,7 @@ def create_estimator(backend: str, **kwargs) -> PoseEstimator:
         model_path = kwargs.pop("model_path", None)
 
         if not model_path:
-            raise ValueError("RTMPose 需要 model_path 参数（ONNX 文件）")
+            raise ValueError("RTMPose 需要 model_path 参数（ONNX 文件），CLI 用 --model 指定")
 
         return RtmposeEstimator(model_path, **kwargs)
 
