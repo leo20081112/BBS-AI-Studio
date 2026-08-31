@@ -1,7 +1,7 @@
 name: build
 
 # BBS AI Studio CI：Java Mod 构建 + Python 工具链语法检查
-# 推送 v* 标签时自动构建并把 Mod jar 发布到 GitHub Release
+# 推送 v* 标签时自动构建 Mod jar 与外部工具链 exe 并发布到 GitHub Release
 
 on:
   push:
@@ -68,11 +68,45 @@ jobs:
           cd bbs-ai-toolchain
           python -c "import json; from core import MotionData, MotionFrame, BonePose; d=MotionData(); d.keyframes.append(MotionFrame(tick=0, bones={'head': BonePose([1,2,3])})); d.stamp('video','t.mp4',30,1,'mediapipe'); p=MotionData.from_dict(json.loads(d.to_json())); assert p.keyframes[0].bones['head'].rotation[0]==1.0; print('contract OK')"
 
+  toolchain:
+    name: Windows toolchain exe
+    # 仅标签构建时打包 exe（依赖安装较重，日常分支构建跳过）
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install toolchain build deps
+        run: python -m pip install -r bbs-ai-toolchain/requirements-build.txt
+
+      - name: Build exe (PyInstaller)
+        run: |
+          cd bbs-ai-toolchain
+          pyinstaller --noconfirm --clean bbs_ai_toolchain.spec
+
+      - name: Zip distribution
+        run: |
+          Compress-Archive -Path bbs-ai-toolchain/dist/bbs-ai-toolchain-windows-x64/* -DestinationPath bbs-ai-toolchain/dist/bbs-ai-toolchain-windows-x64.zip
+
+      - name: Upload toolchain exe (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbs-ai-toolchain-windows-x64
+          path: bbs-ai-toolchain/dist/bbs-ai-toolchain-windows-x64.zip
+          if-no-files-found: error
+
   release:
-    name: Release (attach mod jars)
+    name: Release (mod jars + toolchain exe)
     # 仅在推送 v* 标签时触发：构建产物自动挂到 GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [ java, python ]
+    needs: [ java, python, toolchain ]
     runs-on: ubuntu-latest
 
     permissions:
@@ -94,8 +128,16 @@ jobs:
       - name: Build release jar
         run: ./gradlew build --no-daemon --stacktrace
 
-      - name: Create GitHub Release with jars
+      - name: Download toolchain exe
+        uses: actions/download-artifact@v4
+        with:
+          name: bbs-ai-toolchain-windows-x64
+          path: toolchain-dist
+
+      - name: Create GitHub Release with jars and exe
         uses: softprops/action-gh-release@v2
         with:
-          files: build/libs/*.jar
+          files: |
+            build/libs/*.jar
+            toolchain-dist/*.zip
           generate_release_notes: true

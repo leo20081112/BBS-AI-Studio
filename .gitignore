@@ -50,3 +50,5 @@ __pycache__/
 # dev logs 
 *.log 
 bbs_imports/
+bbs-ai-toolchain/dist/ 
+bbs-ai-toolchain/build/
