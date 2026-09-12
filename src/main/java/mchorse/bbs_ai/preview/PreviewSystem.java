@@ -421,9 +421,13 @@ public class PreviewSystem
 
             int written = 0;
 
+            /* 骨骼映射：标准槽位 → 当前模型实际骨骼名（标准玩家模型无映射，原样写入） */
+            mchorse.bbs_mod.forms.forms.ModelForm modelForm = form instanceof mchorse.bbs_mod.forms.forms.ModelForm mf ? mf : null;
+
             for (String bone : track.getAffectedBones())
             {
-                KeyframeChannel channel = replay.properties.getOrCreate(form, POSE_BONES_PREFIX + bone);
+                String targetBone = modelForm == null ? bone : mchorse.bbs_ai.motion.SkeletonMapping.translateBone(modelForm, bone);
+                KeyframeChannel channel = replay.properties.getOrCreate(form, POSE_BONES_PREFIX + targetBone);
 
                 if (channel == null)
                 {

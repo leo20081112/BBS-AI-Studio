@@ -789,6 +789,24 @@ public class UIAIToolsPanel extends UIDashboardPanel
         section.add(browser);
         y += 28;
 
+        UIButton mapping = new UIButton(L10n.lang("bbs_ai.panel.model.mapping"), (b) ->
+        {
+            mchorse.bbs_mod.forms.forms.ModelForm form = mchorse.bbs_ai.ui.model.ModelFormUI.resolveCurrentModelForm();
+
+            if (form == null)
+            {
+                this.statusBar.setExtraMessage(L10n.lang("bbs_ai.panel.model.mapping.no_form").get());
+
+                return;
+            }
+
+            UIOverlay.addOverlay(this.getContext(), new mchorse.bbs_ai.ui.model.UIBoneMappingPanel(form, null), 340, 320);
+        });
+
+        mapping.relative(section).xy(8, y).w(1F, -16).h(22);
+        section.add(mapping);
+        y += 28;
+
         UILabel path = UI.label(L10n.lang("bbs_ai.panel.model.export.path"), 14, 0x666666);
 
         path.relative(section).xy(8, y).w(1F, -16);

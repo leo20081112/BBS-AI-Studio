@@ -142,6 +142,14 @@ public class BBSSModel
     public JsonObject actions;
 
     /**
+     * 骨骼映射（标准六骨骼槽位 → 模型骨骼名；{@code {"head":"head","left_arm":"arm_l",...}}）
+     *
+     * <p>导出时从表单挂载值读取，导入时写回表单，供视频识别烘焙写入正确的骨骼
+     * （见 {@link mchorse.bbs_ai.motion.SkeletonMapping}）；可为 null。</p>
+     */
+    public JsonObject skeletonMapping;
+
+    /**
      * 内嵌纹理条目
      *
      * @param role 纹理角色：{@code main} 或 {@code material:<材质名>}
@@ -295,6 +303,11 @@ public class BBSSModel
             root.add("actions", this.actions);
         }
 
+        if (this.skeletonMapping != null)
+        {
+            root.add("skeleton_mapping", this.skeletonMapping);
+        }
+
         return root;
     }
 
@@ -393,6 +406,7 @@ public class BBSSModel
         model.ik = getOptionalObject(root, "ik");
         model.physics = getOptionalObject(root, "physics");
         model.actions = getOptionalObject(root, "actions");
+        model.skeletonMapping = getOptionalObject(root, "skeleton_mapping");
 
         return model;
     }
