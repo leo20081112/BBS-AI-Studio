@@ -196,7 +196,71 @@ public class BBSAIStudioModClient implements ClientModInitializer
             ImportManager.get().startWatching();
         }
 
+        /* 7. 进入世界后检测本地组件（FFmpeg / ONNX 模型），缺失时弹出安装询问 */
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
+        {
+            this.checkLocalComponents(client);
+        });
+
         System.out.println("[BBS AI] 客户端初始化完成");
+    }
+
+    /**
+     * 本会话是否已检测过本地组件（每次游戏会话最多询问一次）
+     */
+    private boolean componentsPrompted;
+
+    /**
+     * 进入世界后后台检测缺失的本地组件；有缺失且用户未禁用提示时，
+     * 回到主线程打开 BBS 界面并弹出组件安装询问面板
+     */
+    private void checkLocalComponents(net.minecraft.client.MinecraftClient client)
+    {
+        if (this.componentsPrompted)
+        {
+            return;
+        }
+
+        this.componentsPrompted = true;
+
+        if (BBSAISettings.componentsPromptDisabled != null && BBSAISettings.componentsPromptDisabled.get())
+        {
+            return;
+        }
+
+        Thread thread = new Thread(() ->
+        {
+            java.util.List<mchorse.bbs_ai.core.LocalComponentsDownloader.Component> missing =
+                mchorse.bbs_ai.core.LocalComponentsDownloader.findMissing();
+
+            if (missing.isEmpty())
+            {
+                return;
+            }
+
+            client.execute(() ->
+            {
+                try
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                        dashboard.context,
+                        new mchorse.bbs_ai.ui.panel.UIComponentsSetupPanel(missing),
+                        380,
+                        260
+                    );
+                }
+                catch (Exception e)
+                {
+                    System.err.println("[BBS AI] 弹出本地组件安装面板失败：" + e.getMessage());
+                }
+            });
+        }, "BBS AI 组件检测");
+
+        thread.setDaemon(true);
+        thread.start();
     }
 
     /**
