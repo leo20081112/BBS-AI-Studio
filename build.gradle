@@ -83,6 +83,12 @@ processResources {
 	}
 }
 
+// 主源集与 client 源集在同一个 mchorse.bbs_ai 包下各有一份 package-info.java，
+// sourcesJar 合并源码时按路径视为重复——显式保留两份。
+tasks.matching { it.name == 'sourcesJar' }.configureEach {
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 17
 }
