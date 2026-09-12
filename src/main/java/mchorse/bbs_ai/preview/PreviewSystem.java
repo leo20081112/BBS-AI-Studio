@@ -289,7 +289,7 @@ public class PreviewSystem
         Set<String> conflictedChannels = new HashSet<>();
         int conflictedFrames = 0;
 
-        for (KeyframeChannel<?> channel : new ArrayList<>(replay.properties.properties.values()))
+        for (KeyframeChannel<?> channel : collectChannels(replay))
         {
             for (Keyframe<?> keyframe : channel.getKeyframes())
             {
@@ -304,6 +304,50 @@ public class PreviewSystem
         }
 
         return new int[] {conflictedChannels.size(), conflictedFrames};
+    }
+
+    /**
+     * 收集角色身上全部关键帧通道。
+     *
+     * <p>BBS 2.5 把通道存在 {@code FormProperties.properties}（Map&lt;String, Channel&gt;），
+     * 2.6 重构为 {@code FormProperties.tracks}（Map&lt;TrackId, Channel&gt;）。这里用反射
+     * 按字段名探测，两个版本都兼容；都取不到时返回空列表（冲突检测静默跳过）。</p>
+     */
+    @SuppressWarnings("unchecked")
+    static List<KeyframeChannel<?>> collectChannels(Replay replay)
+    {
+        List<KeyframeChannel<?>> channels = new ArrayList<>();
+
+        for (String field : new String[] {"tracks", "properties"})
+        {
+            try
+            {
+                java.lang.reflect.Field declared = replay.properties.getClass().getField(field);
+                Object map = declared.get(replay.properties);
+
+                if (map instanceof java.util.Map)
+                {
+                    for (Object channel : ((java.util.Map<?, ?>) map).values())
+                    {
+                        if (channel instanceof KeyframeChannel)
+                        {
+                            channels.add((KeyframeChannel<?>) channel);
+                        }
+                    }
+                }
+
+                if (!channels.isEmpty())
+                {
+                    return channels;
+                }
+            }
+            catch (Exception ignored)
+            {
+                /* 尝试下一个字段名 */
+            }
+        }
+
+        return channels;
     }
 
     /**
