@@ -104,13 +104,26 @@ bbs-ai-studio/
 ├── src/main/java/mchorse/
 │   ├── bbs_mod/        # 原版 BBS FS 代码（接口不动）
 │   └── bbs_ai/         # AI 模块（本 Fork 新增）
-├── src/client/java/mchorse/bbs_ai/   # 客户端 UI（面板 / 主题 / 热键等）
+│       ├── core/       # AI 服务总控、加密配置、设置注册
+│       ├── core/api/   # 厂商 API 抽象 + OkHttp 实现
+│       ├── format/     # bbs_ai_studio_motion_v1 数据契约
+│       ├── motion/     # 视频 → 动作识别流水线（FFmpeg + ONNX）
+│       ├── storyboard/ # 文本分镜 DSL → BBS Film 转换
+│       ├── ik/         # Blender 级 IK 约束与解算
+│       ├── preview/    # 预烘焙预览（暂存/缓存/烘焙）
+│       ├── import_manager/ # 导入目录扫描与监听
+│       └── integration/    # Fabric 入口点、事件、/bbs_ai 命令
+├── src/client/java/mchorse/bbs_ai/   # 客户端 UI（面板/主题/热键/操作模式）
 ├── src/main/resources/assets/bbs/
 │   ├── strings/        # bbs_ai_*.json 三语语言文件
 │   └── ai_themes/      # 内置主题模板
-├── bbs-ai-toolchain/   # 外部 Python 工具链
-└── .github/workflows/  # CI
+├── bbs-ai-toolchain/   # 外部 Python 工具链（详见其 README.md）
+├── docs/               # ARCHITECTURE.md / MAINTENANCE.md / ADAPTATION-2.6.md
+└── .github/workflows/  # CI（打 tag 自动发 jar + exe Release）
 ```
+
+每个 `mchorse.bbs_ai` 包都带 `package-info.java` 职责说明；建议从
+`docs/ARCHITECTURE.md`（架构与数据流）和 `docs/MAINTENANCE.md`（"改 X 要动哪"速查）读起。
 
 ## 开发约定
 
