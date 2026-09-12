@@ -326,6 +326,18 @@ public class ModelImporter
         /* bbs-fs 2.6 起 ModelForm 不再有 ik / physics 值：IK 随表单 bones 区块恢复，
          * 物理与约束由内嵌 config.json 原样写回模型目录时恢复，无需单独赋值。 */
 
+        /* 骨骼映射：.bbsm 携带的标准槽位 → 模型骨骼映射挂回表单，
+         * 供视频识别烘焙写入正确骨骼（旧 .bbsm 无此字段则保持标准名）。 */
+        if (model.skeletonMapping != null)
+        {
+            BaseType mappingData = DataJson.fromJson(model.skeletonMapping);
+
+            if (mappingData instanceof MapType mappingMap)
+            {
+                mchorse.bbs_ai.motion.SkeletonMapping.fromData(mappingMap).attach(form);
+            }
+        }
+
         if (model.actions != null)
         {
             BaseType actionsData = DataJson.fromJson(model.actions);
