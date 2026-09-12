@@ -185,6 +185,15 @@ public class BBSAISettings
      */
     public static ValueBoolean uiGuideSeen;
 
+    /* ====================================================================
+     * 本地组件（FFmpeg / ONNX 模型）设置
+     * ==================================================================== */
+
+    /**
+     * 用户选择"不再提示"后，进世界不再弹出本地组件安装询问
+     */
+    public static ValueBoolean componentsPromptDisabled;
+
     /**
      * 是否正处于「配置 → 设置值」同步过程（避免回调风暴与递归）
      */
@@ -201,6 +210,7 @@ public class BBSAISettings
         registerImportCategory(builder);
         registerIkCategory(builder);
         registerInterfaceCategory(builder);
+        registerComponentsCategory(builder);
 
         /* 设置变更时同步到 AI 服务配置（加密持久化） */
         IValueListener aiSync = (value, flag) ->
@@ -297,6 +307,16 @@ public class BBSAISettings
         uiLanguage = builder.getInt("language", 0, 0, 2);
         uiOperationMode = builder.getInt("operation_mode", 0, 0, 2);
         uiGuideSeen = builder.getBoolean("guide_seen", false);
+    }
+
+    /**
+     * 本地组件设置分类
+     */
+    private static void registerComponentsCategory(SettingsBuilder builder)
+    {
+        builder.category("components");
+
+        componentsPromptDisabled = builder.getBoolean("prompt_disabled", false);
     }
 
     /**
