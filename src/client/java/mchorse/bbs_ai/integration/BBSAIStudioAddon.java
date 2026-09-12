@@ -6,9 +6,9 @@ import java.util.List;
 import mchorse.bbs_ai.BBSAIStudio;
 import mchorse.bbs_ai.ui.panel.UIAIToolsPanel;
 import mchorse.bbs_mod.BBSMod;
-import mchorse.bbs_mod.events.BBSAddonMod;
-import mchorse.bbs_mod.events.Subscribe;
-import mchorse.bbs_mod.events.register.RegisterL10nEvent;
+import mchorse.bbs_mod.api.BBSAddonMod;
+import mchorse.bbs_mod.api.Subscribe;
+import mchorse.bbs_mod.api.client.events.RegisterL10nEvent;
 import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.resources.Link;
@@ -55,7 +55,7 @@ public class BBSAIStudioAddon implements BBSAddonMod
      * 注册仪表盘面板
      */
     @Subscribe
-    public void onRegisterDashboardPanels(mchorse.bbs_mod.events.register.RegisterDashboardPanelsEvent event)
+    public void onRegisterDashboardPanels(mchorse.bbs_mod.api.client.events.RegisterDashboardPanelsEvent event)
     {
         if (this.panelsRegistered)
         {
