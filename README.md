@@ -98,13 +98,27 @@ bbs-ai-studio/
 ├── src/main/java/mchorse/
 │   ├── bbs_mod/        # original BBS FS code (untouched interfaces)
 │   └── bbs_ai/         # the AI module (this fork's addition)
-├── src/client/java/mchorse/bbs_ai/   # client-only UI (panels, themes, hotkeys...)
+│       ├── core/       # AI service manager, encrypted config, settings registry
+│       ├── core/api/   # vendor API abstraction + OkHttp implementation
+│       ├── format/     # bbs_ai_studio_motion_v1 data contract
+│       ├── motion/     # video → animation pipeline (FFmpeg + ONNX)
+│       ├── storyboard/ # text storyboard DSL → BBS Film conversion
+│       ├── ik/         # Blender-grade IK constraints & solver
+│       ├── preview/    # pre-baked preview (stage/cache/bake)
+│       ├── import_manager/ # import folder scanning & watching
+│       └── integration/    # Fabric entrypoints, events, /bbs_ai command
+├── src/client/java/mchorse/bbs_ai/   # client-only UI (panel/themes/hotkeys/transforms)
 ├── src/main/resources/assets/bbs/
 │   ├── strings/        # bbs_ai_*.json language files
 │   └── ai_themes/      # bundled theme templates
-├── bbs-ai-toolchain/   # external Python toolchain
-└── .github/workflows/  # CI
+├── bbs-ai-toolchain/   # external Python toolchain (see its README.md)
+├── docs/               # ARCHITECTURE.md / MAINTENANCE.md / ADAPTATION-2.6.md
+└── .github/workflows/  # CI (tag → jar + exe auto release)
 ```
+
+Every `mchorse.bbs_ai` package carries a `package-info.java` describing its scope;
+start reading at `docs/ARCHITECTURE.md` for the data-flow map, and
+`docs/MAINTENANCE.md` for "how do I change X" recipes.
 
 ## License
 
