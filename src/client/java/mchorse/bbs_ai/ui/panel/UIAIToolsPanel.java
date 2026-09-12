@@ -119,6 +119,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
             this.icon(Icons.FONT, "bbs_ai.panel.tab.storyboard", "storyboard"),
             this.icon(Icons.PROCESSOR, "bbs_ai.panel.tab.settings", "settings"),
             this.icon(Icons.IK, "bbs_ai.panel.tab.ik", "ik"),
+            this.icon(Icons.IMAGE, "bbs_ai.panel.tab.model", "model"),
             this.icon(Icons.LAYOUT, "bbs_ai.panel.tab.interface", "interface")
         );
 
@@ -135,6 +136,18 @@ public class UIAIToolsPanel extends UIDashboardPanel
         this.gizmo.setOnSolve(this::solveIK);
 
         this.showSection("import");
+
+        /* bbs-fs 2.6 起 appear/disappear 为 final，生命周期逻辑改在构造期注册回调 */
+        this.onAppear(() ->
+        {
+            this.refreshImports();
+
+            /* 首次使用引导 */
+            if (!BBSAISettings.uiGuideSeen.get())
+            {
+                UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide(), 420, 160);
+            }
+        });
     }
 
     /**
@@ -176,6 +189,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
             case "storyboard": return this.buildStoryboardSection();
             case "settings": return this.buildSettingsSection();
             case "ik": return this.buildIKSection();
+            case "model": return this.buildModelSection();
             case "interface": return this.buildInterfaceSection();
             default: return this.buildImportSection();
         }
@@ -726,7 +740,65 @@ public class UIAIToolsPanel extends UIDashboardPanel
     }
 
     /* ====================================================================
-     * 区块六：界面
+     * 区块六：人物模型导出/导入
+     * ==================================================================== */
+
+    private UIElement buildModelSection()
+    {
+        UIElement section = new UIElement();
+        int y = 8;
+
+        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.model.title"), 14, 0xAAAAAA);
+
+        titleLabel.relative(section).xy(8, y);
+        section.add(titleLabel);
+        y += 22;
+
+        UILabel hint = UI.label(L10n.lang("bbs_ai.panel.model.hint"), 14, Colors.GRAY);
+
+        hint.relative(section).xy(8, y).w(1F, -16).h(28);
+        section.add(hint);
+        y += 34;
+
+        UILabel current = UI.label(IKey.constant(" "), 14, Colors.GRAY);
+
+        mchorse.bbs_mod.forms.forms.ModelForm modelForm = mchorse.bbs_ai.ui.model.ModelFormUI.resolveCurrentModelForm();
+
+        current.label = IKey.constant(modelForm == null
+            ? L10n.lang("bbs_ai.panel.model.no_form").get()
+            : L10n.lang("bbs_ai.panel.model.current").format(modelForm.model.get()).get());
+        current.relative(section).xy(8, y).w(1F, -16);
+        section.add(current);
+        y += 26;
+
+        UIButton export = new UIButton(L10n.lang("bbs_ai.panel.model.export"), (b) ->
+        {
+            UIOverlay.addOverlay(this.getContext(), new mchorse.bbs_ai.ui.model.ExportModelPanel(), 340, 300);
+        });
+
+        export.relative(section).xy(8, y).w(1F, -16).h(22);
+        section.add(export);
+        y += 28;
+
+        UIButton browser = new UIButton(L10n.lang("bbs_ai.panel.model.browser"), (b) ->
+        {
+            UIOverlay.addOverlay(this.getContext(), new mchorse.bbs_ai.ui.model.ModelBrowserPanel(), 380, 340);
+        });
+
+        browser.relative(section).xy(8, y).w(1F, -16).h(22);
+        section.add(browser);
+        y += 28;
+
+        UILabel path = UI.label(L10n.lang("bbs_ai.panel.model.export.path"), 14, 0x666666);
+
+        path.relative(section).xy(8, y).w(1F, -16);
+        section.add(path);
+
+        return section;
+    }
+
+    /* ====================================================================
+     * 区块七：界面
      * ==================================================================== */
 
     private UIElement buildInterfaceSection()
@@ -802,20 +874,6 @@ public class UIAIToolsPanel extends UIDashboardPanel
     /* ====================================================================
      * 生命周期与事件
      * ==================================================================== */
-
-    @Override
-    public void appear()
-    {
-        super.appear();
-
-        this.refreshImports();
-
-        /* 首次使用引导 */
-        if (!BBSAISettings.uiGuideSeen.get())
-        {
-            UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide(), 420, 160);
-        }
-    }
 
     @Override
     public void render(UIContext context)

@@ -37,6 +37,7 @@ bbs-ai-studio/
 | `ik` | Blender IK：约束参数、CCD 解算（锚点跟随/极向/限制/拉伸）、Form 集成 | `BlenderIKConstraint` `BlenderIKSolver` `BlenderIKComponent` |
 | `preview` | 预烘焙预览数据层：暂存/缓存/冲突检测/烘焙写入 | `PreviewSystem` `PrebakeCache` `PreviewTrack` `BakeTarget` |
 | `import_manager` | 扫描+监听 `ai_cache/` 与 `imports/` 两个目录 | `ImportManager` `ImportEntry` |
+| `model` | 人物模型导出/导入：`.bbsm` 单文件格式（GZIP+JSON）、BOBJ 双向转换、目录扫描 | `BBSSModel` `ModelExporter` `ModelImporter` `BOBJWriter` `DataJson` `ModelBrowser` |
 | `integration` | Fabric 入口点、`/bbs_ai` 命令、addon 事件 | `BBSAIStudioMod` `BBSAICommands` `event/*` |
 | `ui` | 主题/语言**枚举**（管理器在 client 侧） | `UITheme` `UILanguage` |
 
@@ -45,7 +46,8 @@ bbs-ai-studio/
 | 包 | 职责 | 关键类 |
 |---|---|---|
 | `integration` | ClientModInitializer + bbs-client-addon（L10n/面板注册） | `BBSAIStudioModClient` `BBSAIStudioAddon` |
-| `ui.panel` | 仪表盘主面板：六区块 + 状态栏（导入/视频/分镜/设置/IK/界面） | `UIAIToolsPanel` |
+| `ui.panel` | 仪表盘主面板：七区块 + 状态栏（导入/视频/分镜/设置/IK/模型/界面） | `UIAIToolsPanel` |
+| `ui.model` | 模型导出对话框、模型浏览器、当前 ModelForm 定位/应用 | `ExportModelPanel` `ModelBrowserPanel` `ModelFormUI` |
 | `ui.theme` | 三主题管理与布局引擎（经典/Blender/Mine-imator） | `ThemeManager` `ThemeResourcePack` `layouts/*` |
 | `ui.language` | 三语切换与 CJK 度量适配 | `LanguageManager` `FontManager` |
 | `ui.hotkey` | 50+ 热键注册/重绑定/冲突检测、状态栏、F1 速查、新手引导 | `HotkeyRegistry` `HotkeySettingsPanel` `StatusBar` `FirstTimeGuide` |
