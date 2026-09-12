@@ -28,7 +28,9 @@ import mchorse.bbs_mod.camera.clips.converters.PathToDollyConverter;
 import mchorse.bbs_mod.camera.clips.converters.PathToKeyframeConverter;
 import mchorse.bbs_mod.camera.clips.misc.AudioClip;
 import mchorse.bbs_mod.camera.clips.misc.CurveClip;
+import mchorse.bbs_mod.camera.clips.misc.ImageClip;
 import mchorse.bbs_mod.camera.clips.misc.SubtitleClip;
+import mchorse.bbs_mod.camera.clips.misc.VideoClip;
 import mchorse.bbs_mod.camera.clips.modifiers.AngleClip;
 import mchorse.bbs_mod.camera.clips.modifiers.DollyZoomClip;
 import mchorse.bbs_mod.camera.clips.modifiers.DragClip;
@@ -45,14 +47,22 @@ import mchorse.bbs_mod.camera.clips.overwrite.KeyframeClip;
 import mchorse.bbs_mod.camera.clips.overwrite.PathClip;
 import mchorse.bbs_mod.entity.ActorEntity;
 import mchorse.bbs_mod.entity.GunProjectileEntity;
-import mchorse.bbs_mod.events.BBSAddonMod;
-import mchorse.bbs_mod.events.EventBus;
-import mchorse.bbs_mod.events.register.RegisterSettingsEvent;
-import mchorse.bbs_mod.events.register.RegisterSourcePacksEvent;
+import mchorse.bbs_mod.api.BBSAddonMod;
+import mchorse.bbs_mod.api.EventBus;
+import mchorse.bbs_mod.api.events.BBSReadyEvent;
+import mchorse.bbs_mod.api.events.RegisterActionClipsEvent;
+import mchorse.bbs_mod.api.events.RegisterCameraClipsEvent;
+import mchorse.bbs_mod.api.events.RegisterFormModifiersEvent;
+import mchorse.bbs_mod.api.events.RegisterFormsEvent;
+import mchorse.bbs_mod.api.events.RegisterKeyframeFactoriesEvent;
+import mchorse.bbs_mod.api.events.RegisterSettingsEvent;
+import mchorse.bbs_mod.utils.keyframes.factories.KeyframeFactories;
+import mchorse.bbs_mod.api.events.RegisterSourcePacksEvent;
 import mchorse.bbs_mod.film.FilmManager;
 import mchorse.bbs_mod.forms.FormArchitect;
 import mchorse.bbs_mod.forms.forms.AnchorForm;
 import mchorse.bbs_mod.forms.forms.BillboardForm;
+import mchorse.bbs_mod.forms.forms.VideoForm;
 import mchorse.bbs_mod.forms.forms.BlockForm;
 import mchorse.bbs_mod.forms.forms.ExtrudedForm;
 import mchorse.bbs_mod.forms.forms.FramebufferForm;
@@ -61,6 +71,7 @@ import mchorse.bbs_mod.forms.forms.LabelForm;
 import mchorse.bbs_mod.forms.forms.MobForm;
 import mchorse.bbs_mod.forms.forms.ModelForm;
 import mchorse.bbs_mod.forms.forms.ParticleForm;
+import mchorse.bbs_mod.forms.forms.StructureForm;
 import mchorse.bbs_mod.forms.forms.TrailForm;
 import mchorse.bbs_mod.forms.forms.VanillaParticleForm;
 import mchorse.bbs_mod.items.GunItem;
@@ -78,6 +89,7 @@ import mchorse.bbs_mod.settings.SettingsManager;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
 import mchorse.bbs_mod.utils.clips.Clip;
+import mchorse.bbs_mod.utils.clips.ClipFactory;
 import mchorse.bbs_mod.utils.colors.Colors;
 import mchorse.bbs_mod.utils.factory.MapFactory;
 import net.fabricmc.api.ModInitializer;
@@ -96,7 +108,6 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRe
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import mchorse.bbs_mod.data.DataStorageUtils;
-import mchorse.bbs_mod.data.GameRegistries;
 import net.minecraft.block.Block;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.component.DataComponentTypes;
@@ -111,8 +122,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
@@ -180,7 +189,11 @@ public class BBSMod implements ModInitializer
         .noCollision()
         .nonOpaque()
         .notSolid()
-        .strength(0F));
+        .strength(0F)
+        /* The hitbox comes from the block entity, so the state's shape cache
+         * must stay off — with it on, the per-block shape would never be asked. */
+        .dynamicBounds()
+        .luminance((state) -> state.get(ModelBlock.LIGHT_LEVEL)));
     public static final Block CHROMA_RED_BLOCK = createChromaBlock();
     public static final Block CHROMA_GREEN_BLOCK = createChromaBlock();
     public static final Block CHROMA_BLUE_BLOCK = createChromaBlock();
@@ -192,6 +205,9 @@ public class BBSMod implements ModInitializer
 
     public static final BlockItem MODEL_BLOCK_ITEM = new BlockItem(MODEL_BLOCK, new Item.Settings());
     public static final GunItem GUN_ITEM = new GunItem(new Item.Settings().maxCount(1));
+    /* Plain vanilla item on purpose: the region selection it drives lives entirely on the client,
+     * so there is nothing for a custom Item subclass to hold (see StructureSelection). */
+    public static final Item STRUCTURE_WAND_ITEM = new Item(new Item.Settings().maxCount(1));
     public static final BlockItem CHROMA_RED_BLOCK_ITEM = new BlockItem(CHROMA_RED_BLOCK, new Item.Settings());
     public static final BlockItem CHROMA_GREEN_BLOCK_ITEM = new BlockItem(CHROMA_GREEN_BLOCK, new Item.Settings());
     public static final BlockItem CHROMA_BLUE_BLOCK_ITEM = new BlockItem(CHROMA_BLUE_BLOCK, new Item.Settings());
@@ -224,6 +240,7 @@ public class BBSMod implements ModInitializer
             entries.add(CHROMA_BLACK_BLOCK_ITEM);
             entries.add(CHROMA_WHITE_BLOCK_ITEM);
             entries.add(new ItemStack(GUN_ITEM));
+            entries.add(new ItemStack(STRUCTURE_WAND_ITEM));
         })
         .build();
 
@@ -237,9 +254,6 @@ public class BBSMod implements ModInitializer
     }
 
     private static File worldFolder;
-
-    /** The running server, kept only so {@link GameRegistries} can reach its registries. */
-    private static MinecraftServer server;
 
     private static Block createChromaBlock()
     {
@@ -407,10 +421,17 @@ public class BBSMod implements ModInitializer
 
         events.post(new RegisterSourcePacksEvent(provider));
 
+        /* Before the forms, because a form of an addon's may well animate a value type of
+         * the same addon's. */
+        KeyframeFactories.setup();
+
+        events.post(new RegisterKeyframeFactoriesEvent());
+
         settings = new SettingsManager();
         forms = new FormArchitect();
         forms
             .register(Link.bbs("billboard"), BillboardForm.class, null)
+            .register(Link.bbs("video"), VideoForm.class, null)
             .register(Link.bbs("label"), LabelForm.class, null)
             .register(Link.bbs("model"), ModelForm.class, null)
             .register(Link.bbs("particle"), ParticleForm.class, null)
@@ -421,12 +442,16 @@ public class BBSMod implements ModInitializer
             .register(Link.bbs("mob"), MobForm.class, null)
             .register(Link.bbs("vanilla_particles"), VanillaParticleForm.class, null)
             .register(Link.bbs("trail"), TrailForm.class, null)
-            .register(Link.bbs("framebuffer"), FramebufferForm.class, null);
+            .register(Link.bbs("framebuffer"), FramebufferForm.class, null)
+            .register(Link.bbs("structure"), StructureForm.class, null);
+
+        events.post(new RegisterFormsEvent(forms));
+        events.post(new RegisterFormModifiersEvent());
 
         films = new FilmManager(() -> new File(worldFolder, "bbs/films"));
 
         /* Register camera clips */
-        factoryCameraClips = new MapFactory<Clip, ClipFactoryData>()
+        factoryCameraClips = new ClipFactory()
             .register(Link.bbs("idle"), IdleClip.class, new ClipFactoryData(Icons.FRUSTUM, 0x159e64)
                 .withConverter(Link.bbs("dolly"), new IdleToDollyConverter())
                 .withConverter(Link.bbs("path"), new IdleToPathConverter())
@@ -451,11 +476,15 @@ public class BBSMod implements ModInitializer
             .register(Link.bbs("remapper"), RemapperClip.class, new ClipFactoryData(Icons.TIME, 0x222222))
             .register(Link.bbs("audio"), AudioClip.class, new ClipFactoryData(Icons.SOUND, 0xffc825))
             .register(Link.bbs("subtitle"), SubtitleClip.class, new ClipFactoryData(Icons.FONT, 0x888899))
+            .register(Link.bbs("image"), ImageClip.class, new ClipFactoryData(Icons.PICTURE, 0x2d4fd2))
+            .register(Link.bbs("video"), VideoClip.class, new ClipFactoryData(Icons.VIDEO_CAMERA, 0xd21f3c))
             .register(Link.bbs("curve"), CurveClip.class, new ClipFactoryData(Icons.ARC, 0xff1493))
             .register(Link.bbs("tracker"), TrackerClip.class, new ClipFactoryData(Icons.USER, 0xffffff))
             .register(Link.bbs("dolly_zoom"), DollyZoomClip.class, new ClipFactoryData(Icons.FILTER, 0x7d56c9));
 
-        factoryActionClips = new MapFactory<Clip, ClipFactoryData>()
+        events.post(new RegisterCameraClipsEvent(factoryCameraClips));
+
+        factoryActionClips = new ClipFactory()
             .register(Link.bbs("chat"), ChatActionClip.class, new ClipFactoryData(Icons.BUBBLE, Colors.YELLOW))
             .register(Link.bbs("command"), CommandActionClip.class, new ClipFactoryData(Icons.PROPERTIES, Colors.ACTIVE))
             .register(Link.bbs("place_block"), PlaceBlockActionClip.class, new ClipFactoryData(Icons.BLOCK, Colors.INACTIVE))
@@ -468,6 +497,8 @@ public class BBSMod implements ModInitializer
             .register(Link.bbs("attack"), AttackActionClip.class, new ClipFactoryData(Icons.DROP, Colors.RED))
             .register(Link.bbs("damage"), DamageActionClip.class, new ClipFactoryData(Icons.SKULL, Colors.CURSOR))
             .register(Link.bbs("swipe"), SwipeActionClip.class, new ClipFactoryData(Icons.LIMB, Colors.ORANGE));
+
+        events.post(new RegisterActionClipsEvent(factoryActionClips));
 
         setupConfig(Icons.SETTINGS, "bbs", new File(settingsFolder, "bbs.json"), BBSSettings::register);
 
@@ -498,6 +529,7 @@ public class BBSMod implements ModInitializer
 
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "model"), MODEL_BLOCK_ITEM);
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "gun"), GUN_ITEM);
+        Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "structure_wand"), STRUCTURE_WAND_ITEM);
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "chroma_red"), CHROMA_RED_BLOCK_ITEM);
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "chroma_green"), CHROMA_GREEN_BLOCK_ITEM);
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "chroma_blue"), CHROMA_BLUE_BLOCK_ITEM);
@@ -508,29 +540,12 @@ public class BBSMod implements ModInitializer
         Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "chroma_white"), CHROMA_WHITE_BLOCK_ITEM);
 
         Registry.register(Registries.ITEM_GROUP, Identifier.of(MOD_ID, "main"), ITEM_GROUP);
+
+        events.post(new BBSReadyEvent());
     }
 
     private void registerEvents()
     {
-        /* The server's registries, for the vanilla codecs BBS serializes data with — an enchanted
-         * item can be neither written nor read without them, and only with the set that owns it
-         * (see GameRegistries). Registered on both sides; the client adds its own in BBSModClient,
-         * ahead of this one, and the thread decides between them. */
-        GameRegistries.addSource(new GameRegistries.Source()
-        {
-            @Override
-            public RegistryWrapper.WrapperLookup lookup()
-            {
-                return server == null ? null : server.getRegistryManager();
-            }
-
-            @Override
-            public boolean isOwnThread()
-            {
-                return server != null && server.isOnThread();
-            }
-        });
-
         ServerEntityEvents.ENTITY_LOAD.register((entity, world) ->
         {
             if (entity instanceof ServerPlayerEntity player)
@@ -541,11 +556,7 @@ public class BBSMod implements ModInitializer
             }
         });
 
-        ServerLifecycleEvents.SERVER_STARTED.register((event) ->
-        {
-            worldFolder = event.getSavePath(WorldSavePath.ROOT).toFile();
-            server = event;
-        });
+        ServerLifecycleEvents.SERVER_STARTED.register((event) -> worldFolder = event.getSavePath(WorldSavePath.ROOT).toFile());
         ServerPlayConnectionEvents.JOIN.register((a, b, c) -> ServerNetwork.sendHandshake(c, b));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> actions.stopFor(handler.getPlayer()));
 
@@ -566,15 +577,10 @@ public class BBSMod implements ModInitializer
             runnables.clear();
         });
 
-        ServerLifecycleEvents.SERVER_STOPPED.register((stopped) ->
+        ServerLifecycleEvents.SERVER_STOPPED.register((server) ->
         {
             actions.reset();
             ServerNetwork.reset();
-
-            if (BBSMod.server == stopped)
-            {
-                BBSMod.server = null;
-            }
         });
 
         EntityTrackingEvents.START_TRACKING.register((trackedEntity, player) ->
