@@ -368,6 +368,13 @@ public class UIAIToolsPanel extends UIDashboardPanel
 
         start.relative(section).xy(8, y).w(1F, -16).h(22);
         section.add(start);
+        y += 28;
+
+        /* 本地组件手动检查入口（错过进世界弹窗的用户从这里补装） */
+        UIButton components = new UIButton(L10n.lang("bbs_ai.panel.video.components"), (b) -> this.openComponentsPanel());
+
+        components.relative(section).xy(8, y).w(1F, -16).h(22);
+        section.add(components);
         y += 30;
 
         this.recognizeProgress = UI.label(L10n.lang("bbs_ai.panel.video.hint"), 14, Colors.GRAY);
@@ -378,10 +385,41 @@ public class UIAIToolsPanel extends UIDashboardPanel
     }
 
     /**
+     * 手动检查本地组件：后台探测缺失后在当前界面弹出安装面板
+     */
+    private void openComponentsPanel()
+    {
+        Thread thread = new Thread(() ->
+        {
+            java.util.List<mchorse.bbs_ai.core.LocalComponentsDownloader.Component> missing =
+                mchorse.bbs_ai.core.LocalComponentsDownloader.findMissing();
+
+            net.minecraft.client.MinecraftClient.getInstance().execute(() ->
+            {
+                if (missing.isEmpty())
+                {
+                    this.getContext().notifyInfo(L10n.lang("bbs_ai.panel.components.all_ready"));
+
+                    return;
+                }
+
+                UIOverlay.addOverlay(
+                    this.getContext(),
+                    new mchorse.bbs_ai.ui.panel.UIComponentsSetupPanel(missing),
+                    380,
+                    260
+                );
+            });
+        }, "BBS AI 组件检测");
+
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    /**
      * 启动识别流水线
      */
-    private void startRecognition()
-    {
+    private void startRecognition()    {
         String path = this.videoPath.getText().trim();
 
         if (path.isEmpty())
