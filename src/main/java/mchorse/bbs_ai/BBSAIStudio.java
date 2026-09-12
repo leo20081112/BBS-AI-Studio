@@ -58,4 +58,36 @@ public class BBSAIStudio
     {
         return new File(getImportsFolder(), path);
     }
+
+    /**
+     * 获取模型导出目录 {@code config/bbs/models/}（.bbsm 单文件输出）
+     */
+    public static File getModelExportFolder()
+    {
+        return BBSMod.getGamePath("config/bbs/models");
+    }
+
+    /**
+     * 获取模型导出子路径
+     */
+    public static File getModelExportPath(String path)
+    {
+        return new File(getModelExportFolder(), path);
+    }
+
+    /**
+     * 获取外部模型导入目录 {@code config/bbs/imports/models/}（.bbsm / .bbs.json 投放目录）
+     */
+    public static File getModelImportFolder()
+    {
+        return BBSMod.getGamePath("config/bbs/imports/models");
+    }
+
+    /**
+     * 获取外部模型导入子路径
+     */
+    public static File getModelImportPath(String path)
+    {
+        return new File(getModelImportFolder(), path);
+    }
 }

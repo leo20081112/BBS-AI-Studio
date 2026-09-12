@@ -60,6 +60,17 @@ public class BBSAIStudioModClient implements ClientModInitializer
      */
     private static KeyBinding keyStoryboard;
 
+    /**
+     * Minecraft 键绑定：导出人物模型（Ctrl+Shift+E）
+     */
+    private static KeyBinding keyModelExport;
+
+    /**
+     * Minecraft 键绑定：导入人物模型 / 模型浏览器（Ctrl+Shift+O / Ctrl+Alt+M）
+     */
+    private static KeyBinding keyModelImport;
+    private static KeyBinding keyModelBrowser;
+
     @Override
     public void onInitializeClient()
     {
@@ -118,6 +129,9 @@ public class BBSAIStudioModClient implements ClientModInitializer
         keyImportPanel = this.createKey("ai_import", GLFW.GLFW_KEY_I);
         keyRecognize = this.createKey("ai_recognize", GLFW.GLFW_KEY_M);
         keyStoryboard = this.createKey("ai_storyboard", GLFW.GLFW_KEY_S);
+        keyModelExport = this.createKey("model_export", GLFW.GLFW_KEY_E);
+        keyModelImport = this.createKey("model_import", GLFW.GLFW_KEY_O);
+        keyModelBrowser = this.createKey("model_browser", GLFW.GLFW_KEY_M);
 
         /* 5. 每帧轮询键位 */
         ClientTickEvents.END_CLIENT_TICK.register((client) ->
@@ -150,6 +164,30 @@ public class BBSAIStudioModClient implements ClientModInitializer
                     this.showSection("storyboard");
                 }
             }
+
+            while (keyModelExport.wasPressed())
+            {
+                if (this.hasCtrl(client))
+                {
+                    this.openModelExport();
+                }
+            }
+
+            while (keyModelImport.wasPressed())
+            {
+                if (this.hasCtrl(client))
+                {
+                    this.openModelBrowser();
+                }
+            }
+
+            while (keyModelBrowser.wasPressed())
+            {
+                if (this.hasCtrl(client) && this.hasAlt(client))
+                {
+                    this.openModelBrowser();
+                }
+            }
         });
 
         /* 6. 导入目录自动监听（按设置） */
@@ -162,17 +200,14 @@ public class BBSAIStudioModClient implements ClientModInitializer
     }
 
     /**
-     * AI 按键分类（{@code bbs:ai}，标签键 {@code key.category.bbs.ai}）
+     * 注册键绑定
      *
      * <p>【1.21.11 适配】KeyBinding 的分类从字符串改为 KeyBinding.Category 注册对象，
-     * 且同 id 重复注册会抛异常；基座 BBSModClient 已占用 {@code bbs:main}，
-     * 故 AI 按键单独建分类。静态字段只创建一次并复用。</p>
+     * 且不同 id 重复注册会抛异常；基座 BBSModClient 已占用 {@code bbs:main}，
+     * 故 AI 按键单独建分类（标签键 {@code key.category.bbs.ai}）。静态字段只创建一次并复用。</p>
      */
     private static final KeyBinding.Category AI_KEY_CATEGORY = KeyBinding.Category.create(Identifier.of(BBSMod.MOD_ID, "ai"));
 
-    /**
-     * 注册键绑定
-     */
     private KeyBinding createKey(String id, int key)
     {
         return KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -236,5 +271,52 @@ public class BBSAIStudioModClient implements ClientModInitializer
 
         return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
             || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+    }
+
+    /**
+     * 是否按着 Alt
+     */
+    private boolean hasAlt(MinecraftClient client)
+    {
+        long handle = client.getWindow().getHandle();
+
+        return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_ALT) == GLFW.GLFW_PRESS
+            || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_ALT) == GLFW.GLFW_PRESS;
+    }
+
+    /**
+     * 打开模型导出对话框（Ctrl+Shift+E）
+     */
+    private void openModelExport()
+    {
+        try
+        {
+            mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+            mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+            mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(dashboard.context, new mchorse.bbs_ai.ui.model.ExportModelPanel(), 340, 300);
+        }
+        catch (Exception e)
+        {
+            System.err.println("[BBS AI] 打开模型导出面板失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 打开模型浏览器（Ctrl+Shift+O / Ctrl+Alt+M）
+     */
+    private void openModelBrowser()
+    {
+        try
+        {
+            mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+            mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+            mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(dashboard.context, new mchorse.bbs_ai.ui.model.ModelBrowserPanel(), 380, 340);
+        }
+        catch (Exception e)
+        {
+            System.err.println("[BBS AI] 打开模型浏览器失败：" + e.getMessage());
+        }
     }
 }

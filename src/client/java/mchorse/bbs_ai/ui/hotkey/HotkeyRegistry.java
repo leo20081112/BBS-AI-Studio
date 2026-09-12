@@ -126,6 +126,11 @@ public class HotkeyRegistry
         this.add("ai.preview_bake", "确认烘焙", "确认烘焙预览数据", HotkeyDefinition.Category.AI, GLFW.GLFW_KEY_ENTER, HotkeyDefinition.MOD_CTRL);
         this.add("ai.preview_discard", "放弃预览", "放弃预览数据", HotkeyDefinition.Category.AI, GLFW.GLFW_KEY_ESCAPE, HotkeyDefinition.MOD_CTRL);
 
+        /* ---- 模型（人物模型导出/导入系统） ---- */
+        this.add("model.export", "导出模型", "将当前人物模型导出为 .bbsm 单文件", HotkeyDefinition.Category.AI, GLFW.GLFW_KEY_E, HotkeyDefinition.MOD_SHIFT | HotkeyDefinition.MOD_CTRL);
+        this.add("model.import", "导入模型", "打开模型浏览器导入人物模型", HotkeyDefinition.Category.AI, GLFW.GLFW_KEY_O, HotkeyDefinition.MOD_SHIFT | HotkeyDefinition.MOD_CTRL);
+        this.add("model.browser", "模型浏览器", "查看所有可用模型（导出目录 / 外部导入 / 游戏内）", HotkeyDefinition.Category.AI, GLFW.GLFW_KEY_M, HotkeyDefinition.MOD_CTRL | HotkeyDefinition.MOD_ALT);
+
         /* ---- 通用 ---- */
         this.add("general.undo", "撤销", "撤销上一步操作", HotkeyDefinition.Category.GENERAL, GLFW.GLFW_KEY_Z, HotkeyDefinition.MOD_CTRL);
         this.add("general.redo", "重做", "重做撤销的操作", HotkeyDefinition.Category.GENERAL, GLFW.GLFW_KEY_Z, HotkeyDefinition.MOD_SHIFT | HotkeyDefinition.MOD_CTRL);

@@ -22,12 +22,12 @@
     "key.bbs.record_video": "录制视频",
     "key.bbs.teleport": "传送至当前回放",
     "key.bbs.zoom": "瞄准 (BBS 枪)",
-    "key.category.bbs.main": "BBS mod",
+    "category.bbs.main": "BBS mod",
     "key.category.bbs.ai": "BBS AI Studio",
-    "key.bbs.ai_preview": "切换 AI 预览",
-    "key.bbs.ai_import": "打开 AI 导入面板",
-    "key.bbs.ai_recognize": "AI 视频识别",
-    "key.bbs.ai_storyboard": "AI 分镜生成",
+    "key.bbs.ai_preview": "鍒囨崲 AI 棰勮",
+    "key.bbs.ai_import": "鎵撳紑 AI 瀵煎叆闈㈡澘",
+    "key.bbs.ai_recognize": "AI 瑙嗛璇嗗埆",
+    "key.bbs.ai_storyboard": "AI 鍒嗛暅鐢熸垚",
 
     "gamerule.bbsEditing": "BBS mod 的编辑权限"
 }
