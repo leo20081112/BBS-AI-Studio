@@ -52,6 +52,7 @@ import mchorse.bbs_mod.ui.framework.elements.input.text.UITextarea;
 import mchorse.bbs_mod.ui.framework.elements.input.text.UITextbox;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay;
 import mchorse.bbs_mod.ui.framework.elements.utils.UILabel;
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.ui.utils.UI;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
@@ -113,12 +114,12 @@ public class UIAIToolsPanel extends UIDashboardPanel
 
         /* 顶部区块切换图标 */
         UIElement topBar = UI.row(2,
-            this.icon(Icons.DOWNLOAD, "导入管理 (Ctrl+Shift+I)", "import"),
-            this.icon(Icons.VIDEO_CAMERA, "视频识别 (Ctrl+Shift+M)", "video"),
-            this.icon(Icons.FONT, "分镜生成 (Ctrl+Shift+S)", "storyboard"),
-            this.icon(Icons.PROCESSOR, "AI 设置", "settings"),
-            this.icon(Icons.IK, "IK 调整", "ik"),
-            this.icon(Icons.LAYOUT, "界面", "interface")
+            this.icon(Icons.DOWNLOAD, "bbs_ai.panel.tab.import", "import"),
+            this.icon(Icons.VIDEO_CAMERA, "bbs_ai.panel.tab.video", "video"),
+            this.icon(Icons.FONT, "bbs_ai.panel.tab.storyboard", "storyboard"),
+            this.icon(Icons.PROCESSOR, "bbs_ai.panel.tab.settings", "settings"),
+            this.icon(Icons.IK, "bbs_ai.panel.tab.ik", "ik"),
+            this.icon(Icons.LAYOUT, "bbs_ai.panel.tab.interface", "interface")
         );
 
         topBar.relative(this).xy(0, 0).w(1F).h(24);
@@ -139,11 +140,11 @@ public class UIAIToolsPanel extends UIDashboardPanel
     /**
      * 构建顶部切换图标
      */
-    private UIIcon icon(Icon icon, String tooltip, String section)
+    private UIIcon icon(Icon icon, String tooltipKey, String section)
     {
         UIIcon button = new UIIcon(icon, (b) -> this.showSection(section));
 
-        button.tooltip(IKey.constant(tooltip));
+        button.tooltip(L10n.lang(tooltipKey));
 
         return button;
     }
@@ -192,20 +193,20 @@ public class UIAIToolsPanel extends UIDashboardPanel
         this.importList.relative(section).xy(0, 0).w(1F).h(1F, -60);
         this.importList.background();
 
-        UIButton refresh = new UIButton(IKey.constant("扫描目录"), (b) ->
+        UIButton refresh = new UIButton(L10n.lang("bbs_ai.panel.import.refresh"), (b) ->
         {
             ImportManager.get().scanAllSources();
             this.refreshImports();
         });
 
-        UIButton preview = new UIButton(IKey.constant("预览"), (b) -> this.previewSelectedImport());
-        UIButton bake = new UIButton(IKey.constant("烘焙..."), (b) -> this.bakeSelectedImport());
+        UIButton preview = new UIButton(L10n.lang("bbs_ai.panel.import.preview"), (b) -> this.previewSelectedImport());
+        UIButton bake = new UIButton(L10n.lang("bbs_ai.panel.import.bake"), (b) -> this.bakeSelectedImport());
 
         UIElement buttons = UI.row(4, refresh, preview, bake);
 
         buttons.relative(section).y(1F, -56).w(1F).h(22);
 
-        this.importInfo = UI.label(IKey.constant("选择一个动作数据查看详情"), 14, Colors.GRAY);
+        this.importInfo = UI.label(L10n.lang("bbs_ai.panel.import.empty"), 14, Colors.GRAY);
         this.importInfo.relative(section).x(6).y(1F, -30).w(1F, -12);
 
         section.add(this.importList, buttons, this.importInfo);
@@ -250,7 +251,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
 
         if (entry == null)
         {
-            this.importInfo.label = IKey.constant("选择一个动作数据查看详情");
+            this.importInfo.label = L10n.lang("bbs_ai.panel.import.empty");
 
             return;
         }
@@ -328,7 +329,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         UIElement section = new UIElement();
         int y = 8;
 
-        UILabel titleLabel = UI.label(IKey.constant("视频骨骼识别（本地 AI）"), 14, 0xAAAAAA);
+        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.video.title"), 14, 0xAAAAAA);
 
         titleLabel.relative(section).xy(8, y);
         section.add(titleLabel);
@@ -338,24 +339,24 @@ public class UIAIToolsPanel extends UIDashboardPanel
         {});
 
         this.videoPath.relative(section).xy(8, y).w(1F, -16).h(20);
-        this.videoPath.placeholder(IKey.constant("D:\\videos\\dance.mp4"));
+        this.videoPath.placeholder(L10n.lang("bbs_ai.panel.video.path"));
         section.add(this.videoPath);
         y += 28;
 
-        this.mirrorToggle = new UIToggle(IKey.constant("镜像（前置摄像头视频勾选）"), false, (b) ->
+        this.mirrorToggle = new UIToggle(L10n.lang("bbs_ai.panel.video.mirror"), false, (b) ->
         {});
 
         this.mirrorToggle.relative(section).xy(8, y).w(1F, -16).h(18);
         section.add(this.mirrorToggle);
         y += 26;
 
-        UIButton start = new UIButton(IKey.constant("开始识别"), (b) -> this.startRecognition());
+        UIButton start = new UIButton(L10n.lang("bbs_ai.panel.video.start"), (b) -> this.startRecognition());
 
         start.relative(section).xy(8, y).w(1F, -16).h(22);
         section.add(start);
         y += 30;
 
-        this.recognizeProgress = UI.label(IKey.constant("支持 mp4/avi/mov/webm；需要 FFmpeg 与 ONNX 模型文件"), 14, Colors.GRAY);
+        this.recognizeProgress = UI.label(L10n.lang("bbs_ai.panel.video.hint"), 14, Colors.GRAY);
         this.recognizeProgress.relative(section).xy(8, y).w(1F, -16);
         section.add(this.recognizeProgress);
 
@@ -413,7 +414,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         UIElement section = new UIElement();
         int y = 8;
 
-        UILabel titleLabel = UI.label(IKey.constant("文本生成分镜（API 模式）"), 14, 0xAAAAAA);
+        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.storyboard.title"), 14, 0xAAAAAA);
 
         titleLabel.relative(section).xy(8, y);
         section.add(titleLabel);
@@ -426,7 +427,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         this.storyboardPrompt.relative(section).xy(8, y).w(1F, -16).h(1F, -130);
         section.add(this.storyboardPrompt);
 
-        UIButton generate = new UIButton(IKey.constant("生成分镜并转换为影片"), (b) -> this.generateStoryboard());
+        UIButton generate = new UIButton(L10n.lang("bbs_ai.panel.storyboard.generate"), (b) -> this.generateStoryboard());
 
         generate.relative(section).x(8).y(1F, -66).w(1F, -16).h(22);
         section.add(generate);
@@ -499,7 +500,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
 
         AIConfig config = AIServiceManager.get().getConfig();
 
-        UILabel titleLabel = UI.label(IKey.constant("AI 服务（Key 加密存储于 ai_providers.json）"), 14, 0xAAAAAA);
+        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.settings.title"), 14, 0xAAAAAA);
 
         titleLabel.relative(section).xy(8, y);
         section.add(titleLabel);
@@ -545,7 +546,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         section.add(this.modelBox);
         y += 28;
 
-        UIButton test = new UIButton(IKey.constant("测试连接"), (b) -> this.testConnection());
+        UIButton test = new UIButton(L10n.lang("bbs_ai.panel.settings.test"), (b) -> this.testConnection());
 
         test.relative(section).xy(8, y).w(1F, -16).h(22);
         section.add(test);
@@ -661,7 +662,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         UIElement section = new UIElement();
         int y = 8;
 
-        UILabel titleLabel = UI.label(IKey.constant("Blender 风格 IK（完全复刻约束语义）"), 14, 0xAAAAAA);
+        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.ik.title"), 14, 0xAAAAAA);
 
         titleLabel.relative(section).xy(8, y);
         section.add(titleLabel);
@@ -733,7 +734,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         UIElement section = new UIElement();
         int y = 8;
 
-        UILabel titleLabel = UI.label(IKey.constant("界面设置"), 14, 0xAAAAAA);
+        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.interface.title"), 14, 0xAAAAAA);
 
         titleLabel.relative(section).xy(8, y);
         section.add(titleLabel);
