@@ -145,7 +145,8 @@ public class ModelBrowserPanel extends UIOverlayPanel
     }
 
     /**
-     * 导入选中模型：解包到 assets → 重载模型管理器 → 应用到当前角色
+     * 导入选中模型：解包到 assets → 重载模型管理器 → 应用到当前角色 →
+     * 自定义模型弹出骨骼映射面板让用户检查/修改/确认
      */
     private void importSelected()
     {
@@ -173,12 +174,50 @@ public class ModelBrowserPanel extends UIOverlayPanel
                 "√ " + L10n.lang("bbs_ai.panel.model.browser.done") + ": " + entry.name
                 + (applied ? "" : "（" + L10n.lang("bbs_ai.panel.model.browser.not_applied") + "）")
             ));
+
+            /* 骨骼映射：自定义模型自动弹出确认面板（标准玩家模型不打扰） */
+            this.openMappingPanelIfNeeded(form);
         }
         catch (Exception e)
         {
             System.err.println("[BBS AI] 导入模型失败：" + e);
 
             this.infoLabel.label = IKey.constant("X " + e.getMessage());
+        }
+    }
+
+    /**
+     * 需要时弹出骨骼映射面板：模型带骨骼且不是恰好标准六骨时，
+     * 自动识别预填，由用户检查、修改后确认；已携带映射的 .bbsm 同样弹出复查
+     */
+    private void openMappingPanelIfNeeded(mchorse.bbs_mod.forms.forms.ModelForm form)
+    {
+        try
+        {
+            java.util.List<String> boneNames = mchorse.bbs_ai.motion.SkeletonMapping.extractBoneNames(form);
+
+            if (boneNames.isEmpty())
+            {
+                return;
+            }
+
+            boolean standard = mchorse.bbs_ai.motion.SkeletonMapper.boneNames().equals(boneNames);
+
+            if (standard && mchorse.bbs_ai.motion.SkeletonMapping.get(form).isEmpty())
+            {
+                return;
+            }
+
+            mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                this.getContext(),
+                new mchorse.bbs_ai.ui.model.UIBoneMappingPanel(form, null),
+                340,
+                320
+            );
+        }
+        catch (Exception e)
+        {
+            System.err.println("[BBS AI] 打开骨骼映射面板失败：" + e.getMessage());
         }
     }
 }

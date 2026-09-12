@@ -104,6 +104,14 @@ public class ModelExporter
         form.actions.get().toData(actionsData);
         model.actions = (JsonObject) DataJson.toJson(actionsData);
 
+        /* === 骨骼映射（标准槽位 → 模型骨骼，自定义模型自动识别确认后挂载）=== */
+        mchorse.bbs_ai.motion.SkeletonMapping mapping = mchorse.bbs_ai.motion.SkeletonMapping.get(form);
+
+        if (!mapping.isEmpty())
+        {
+            model.skeletonMapping = (JsonObject) DataJson.toJson(mapping.toData());
+        }
+
         /* === 原始模型文件内嵌（单文件往返零损失）=== */
         AssetProvider provider = BBSMod.getProvider();
         String modelId = form.model.get();
