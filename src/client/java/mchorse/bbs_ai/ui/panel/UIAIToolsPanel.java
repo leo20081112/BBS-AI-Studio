@@ -142,10 +142,10 @@ public class UIAIToolsPanel extends UIDashboardPanel
         {
             this.refreshImports();
 
-            /* 首次使用引导 */
+            /* 首次使用引导（不传尺寸，面板按内容自适应高度） */
             if (!BBSAISettings.uiGuideSeen.get())
             {
-                UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide(), 420, 160);
+                UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide());
             }
         });
     }
@@ -910,7 +910,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
 
         UIButton guide = new UIButton(IKey.constant("重看新手引导"), (b) ->
         {
-            UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide(), 420, 160);
+            UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide());
         });
 
         guide.relative(section).xy(8, y).w(1F, -16).h(22);

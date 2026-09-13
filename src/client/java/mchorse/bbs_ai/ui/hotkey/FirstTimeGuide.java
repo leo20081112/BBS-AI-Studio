@@ -6,21 +6,23 @@ import mchorse.bbs_ai.core.BBSAISettings;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIButton;
-import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
-import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
-import mchorse.bbs_mod.utils.colors.Colors;
+import mchorse.bbs_mod.ui.framework.elements.overlay.UIMessageOverlayPanel;
 
 /**
  * 首次使用引导
  *
- * <p>首次打开 AI 工具面板时显示浮动提示层：按顺序展示核心热键
- * N / T / G / R / S / I / 空格，每个提示停留 3 秒自动切换，
- * 用户可点击「跳过」。看过后写入设置不再弹出；
+ * <p>首次打开 AI 工具面板时弹出消息对话框：按顺序展示核心热键
+ * N / T / G / R / S / I / 空格，每条提示停留 3 秒自动切换，
+ * 用户可点击「跳过引导」。看过后写入设置不再弹出；
  * 随时可按 F1 打开热键速查表。</p>
+ *
+ * <p>继承 {@link UIMessageOverlayPanel}：步骤文案由面板正文的
+ * 多行文本承载（bbs-fs 2.6 起空面板会以固定尺寸渲染成空白窗体，
+ * 同时复用其按内容自适应高度的能力），避免出现大片空白。</p>
  *
  * <p>作者：BBS AI Studio</p>
  */
-public class FirstTimeGuide extends UIOverlayPanel
+public class FirstTimeGuide extends UIMessageOverlayPanel
 {
     /**
      * 每条提示的停留时长（毫秒）
@@ -44,37 +46,29 @@ public class FirstTimeGuide extends UIOverlayPanel
 
     public FirstTimeGuide()
     {
-        super(IKey.constant("BBS AI Studio 快速入门"));
+        super(IKey.constant("BBS AI Studio 快速入门"), IKey.EMPTY);
+
+        UIButton skip = new UIButton(IKey.constant("跳过引导"), (b) -> this.finish());
+
+        /* 沿用 UIConfirmOverlayPanel 的习惯：按钮挂在正文下方并由 bottom 计入面板高度 */
+        skip.relative(this.content).x(0.5F).y(1F, -10).w(80).anchor(0.5F, 1F);
+        this.content.add(skip);
+        this.bottom = skip;
 
         this.stepStart = System.currentTimeMillis();
-
-        UIButton skip = new UIButton(IKey.constant("跳过引导"), (b) -> this.close());
-
-        skip.relative(this).x(0.5F, -40).y(1F, -34).w(80).h(20);
-
-        this.add(skip);
-        this.setInitialOffset(0, 0);
+        this.applyStep();
     }
 
     /**
-     * 当前步骤的提示文本
+     * 把当前步骤写进正文文本（换行交给 UIText 自动折行）
      */
-    private String currentText()
+    private void applyStep()
     {
-        if (this.step < 0 || this.step >= STEPS.length)
-        {
-            return "";
-        }
-
         HotkeyDefinition definition = HotkeyRegistry.get().get(STEPS[this.step]);
+        String key = definition == null ? "?" : KeyFormatter.format(definition);
+        String description = definition == null ? "" : definition.description;
 
-        if (definition == null)
-        {
-            return "";
-        }
-
-        return "第 " + (this.step + 1) + "/" + STEPS.length + " 步：按 "
-            + KeyFormatter.format(definition) + " —— " + definition.description;
+        this.message.text("第 " + (this.step + 1) + "/" + STEPS.length + " 步：按 " + key + " —— " + description);
     }
 
     @Override
@@ -94,21 +88,11 @@ public class FirstTimeGuide extends UIOverlayPanel
 
                 return;
             }
+
+            this.applyStep();
         }
 
         super.render(context);
-
-        Batcher2D batcher = context.batcher;
-
-        /* 提示条背景 + 居中白色文字 */
-        String text = this.currentText();
-        int textWidth = batcher.getFont().getWidth(text);
-        int textHeight = batcher.getFont().getHeight();
-        int x = this.area.mx(textWidth);
-        int y = this.area.y - 24;
-
-        batcher.box(x - 8, y - 4, x + textWidth + 8, y + textHeight + 4, 0x88000000);
-        batcher.text(text, x, y, Colors.WHITE);
     }
 
     /**
