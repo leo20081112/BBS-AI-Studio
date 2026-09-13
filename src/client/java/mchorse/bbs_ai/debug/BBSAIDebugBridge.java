@@ -102,6 +102,7 @@ public class BBSAIDebugBridge
             server.createContext("/command", this.guard(this::handleCommand));
             server.createContext("/chat", this.guard(this::handleChat));
             server.createContext("/log", this.guard(this::handleLog));
+            server.createContext("/ui", this.guard(this::handleUi));
             server.setExecutor(Executors.newSingleThreadExecutor((r) ->
             {
                 Thread thread = new Thread(r, "BBS AI 调试桥");
@@ -442,6 +443,98 @@ public class BBSAIDebugBridge
     }
 
     /**
+     * POST /ui：程序化打开界面，供自动化测试免点击导航
+     *
+     * <p>支持字段（可组合，按序执行）：{@code close=true} 关闭当前界面；
+     * {@code panel="ai_tools"} 打开 AI 工具面板（可带 {@code section}）；
+     * {@code guide=true} 弹出首次引导；{@code settings=true} 弹出 BBS 设置。</p>
+     */
+    private void handleUi(HttpExchange exchange) throws IOException
+    {
+        final String body = this.readBody(exchange);
+        MinecraftClient client = MinecraftClient.getInstance();
+
+        if (client.player == null)
+        {
+            this.sendJson(exchange, 409, "{\"ok\":false,\"error\":\"not in a world\"}");
+
+            return;
+        }
+
+        CountDownLatch latch = new CountDownLatch(1);
+        final String[] error = { null };
+
+        client.execute(() ->
+        {
+            try
+            {
+                if (extractBool(body, "close"))
+                {
+                    client.setScreen(null);
+                }
+
+                if ("ai_tools".equals(extractString(body, "panel")))
+                {
+                    String section = extractString(body, "section");
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+                    mchorse.bbs_ai.ui.panel.UIAIToolsPanel panel = dashboard.getPanel(mchorse.bbs_ai.ui.panel.UIAIToolsPanel.class);
+
+                    if (panel == null)
+                    {
+                        error[0] = "ai tools panel not found";
+
+                        return;
+                    }
+
+                    if (!section.isEmpty())
+                    {
+                        panel.showSection(section);
+                    }
+
+                    /* bbs-fs 2.6 面板即标签页：先切换再打开屏幕，否则停留在原面板 */
+                    dashboard.setPanel(panel);
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                }
+
+                if (extractBool(body, "guide"))
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(dashboard.context, new mchorse.bbs_ai.ui.hotkey.FirstTimeGuide());
+                }
+
+                if (extractBool(body, "settings"))
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(dashboard.context, new mchorse.bbs_mod.settings.ui.UISettingsOverlayPanel());
+                }
+            }
+            catch (Exception e)
+            {
+                error[0] = String.valueOf(e);
+            }
+            finally
+            {
+                latch.countDown();
+            }
+        });
+
+        this.await(latch);
+
+        if (error[0] != null)
+        {
+            this.sendJson(exchange, 500, "{\"ok\":false,\"error\":" + quote(error[0]) + "}");
+
+            return;
+        }
+
+        this.sendJson(exchange, 200, "{\"ok\":true}");
+    }
+
+    /**
      * 读取请求体（UTF-8，上限 64 KB）
      */
     private String readBody(HttpExchange exchange) throws IOException
@@ -511,6 +604,42 @@ public class BBSAIDebugBridge
         }
 
         return builder.append('"').toString();
+    }
+
+    /**
+     * 从手写 JSON 体中取布尔字段（true 字面量）
+     */
+    private static boolean extractBool(String body, String field)
+    {
+        if (body == null)
+        {
+            return false;
+        }
+
+        String key = "\"" + field + "\"";
+        int keyIndex = body.indexOf(key);
+
+        if (keyIndex < 0)
+        {
+            return false;
+        }
+
+        int colon = body.indexOf(':', keyIndex + key.length());
+
+        if (colon < 0)
+        {
+            return false;
+        }
+
+        /* 跳过冒号后的空白（json.dumps 默认输出 ": true"） */
+        int cursor = colon + 1;
+
+        while (cursor < body.length() && Character.isWhitespace(body.charAt(cursor)))
+        {
+            cursor++;
+        }
+
+        return body.startsWith("true", cursor);
     }
 
     /**
