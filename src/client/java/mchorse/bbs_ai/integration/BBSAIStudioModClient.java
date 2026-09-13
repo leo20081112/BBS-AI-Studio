@@ -201,6 +201,9 @@ public class BBSAIStudioModClient implements ClientModInitializer
             this.checkLocalComponents(client);
         });
 
+        /* 8. 本地调试桥（127.0.0.1 截图/命令/日志，供 MCP 等外部工具自动化测试；-Dbbsai.bridge.port=0 关闭） */
+        mchorse.bbs_ai.debug.BBSAIDebugBridge.get().start();
+
         System.out.println("[BBS AI] 客户端初始化完成");
     }
 
