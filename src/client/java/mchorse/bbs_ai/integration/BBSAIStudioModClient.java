@@ -314,6 +314,9 @@ public class BBSAIStudioModClient implements ClientModInitializer
             }
 
             panel.showSection(id);
+
+            /* bbs-fs 2.6 面板即标签页：先切换再打开屏幕，否则停留在原面板 */
+            dashboard.setPanel(panel);
             mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
         }
         catch (Exception e)
