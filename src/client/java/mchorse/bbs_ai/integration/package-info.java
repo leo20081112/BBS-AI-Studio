@@ -1,9 +1,9 @@
 /**
- * 客户端接入点
- * 
- * <p>{@link mchorse.bbs_ai.integration.BBSAIStudioModClient} ClientModInitializer
- * （UUID 注入、modes 标签、MC 键绑定、服务初始化）；
- * {@link mchorse.bbs_ai.integration.BBSAIStudioAddon} 以 bbs-client-addon 入口经 @Subscribe
- * 接入 BBS 的 L10n 注册与仪表盘面板注册【原版兼容】。</p>
+ * 客户端底层集成
+ *
+ * <p>{@link mchorse.bbs_ai.integration.BBSAIClientIntegration} 由
+ * BBSModClient.onInitializeClient 末尾直接调用（原独立 client 入口点与
+ * bbs-client-addon 入口已并入底层）：UUID 注入、modes 标签、MC 键绑定、
+ * 服务初始化、本地组件检测与调试桥【原版兼容】。</p>
  */
 package mchorse.bbs_ai.integration;

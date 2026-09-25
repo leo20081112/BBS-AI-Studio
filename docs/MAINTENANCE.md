@@ -10,19 +10,21 @@
    声明 `public static` 字段；如需变更回调，在 `register()` 尾部挂 `postCallback`。
 2. 三语文件 `assets/bbs/strings/bbs_ai_*.json` —— 加两条键：
    `bbs_ai.config.<分类>.<id>`（标题）与 `bbs_ai.config.<分类>.<id>-comment`（悬停提示）。
-3. 需要下拉选项时：在 `BBSAIStudioModClient.onInitializeClient` 里对该字段调 `.modes(...)`。
+3. 需要下拉选项时：在 `BBSAIClientIntegration.initialize()` 里对该字段调 `.modes(...)`。
 4. `docs/ARCHITECTURE.md` 的设置清单无需更新（由键自描述）。
 
 > 下拉模式的标签目前为中文常量；如需三语，改用 `L10n.lang(...)` 并补键。
 
 ## 2. 新增面板区块（AI 工具面板）
 
-全部在 client 源集 `ui/panel/UIAIToolsPanel.java`：
+面板为原生 UISection 折叠卡片布局（client 源集 `ui/panel/UIAIToolsPanel.java`）：
 
-1. 顶部 `icon(Icons.X, "bbs_ai.panel.tab.<id>", "<id>")` 加一个图标；
-2. 写 `build<Name>Section()`，并在 `buildSection()` 的 switch 里加分支；
-3. 三语文件加 `bbs_ai.panel.tab.<id>` 与区块内文案键；
-4. 面板文案一律 `L10n.lang(...)`，不写死中文。
+1. 写 `build<Name>Section()`（仿照现有区块：`section(id, titleKey, defaultExpanded)` +
+   `section.fields.add(控件...)`），并把返回值加入构造器里 `UI.scrollView(...)` 的参数列表；
+2. 三语文件加 `bbs_ai.panel.tab.<id>` 与区块内文案键；
+3. 面板文案一律 `L10n.lang(...)`，不写死中文；
+4. 控件用上游原生件（UI.labelRow / UITrackpad / UICirculate / UIToggle），
+   与 Model blocks / Particles 面板观感一致。
 
 ## 3. 新增一个 AI 厂商
 
@@ -30,7 +32,7 @@
 2. `InGameAPIProvider.buildOpenAIUrl` 加端点拼接规则（若非 OpenAI 兼容协议，
    仿照 `requestClaude` 单独写请求/解析）；
 3. 三语文件更新 `bbs_ai.config.ai.provider` 提示；
-4. `BBSAIStudioModClient` 的 provider `.modes(...)` 标签会自动跟随枚举长度（上限 5，超出同步改设置注册的 min/max）。
+4. `BBSAIClientIntegration` 的 provider `.modes(...)` 标签会自动跟随枚举长度（上限 5，超出同步改设置注册的 min/max）。
 
 ## 4. 发版流程（全自动）
 

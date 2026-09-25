@@ -310,6 +310,16 @@ public class UIDashboard extends UIBaseMenu
         this.buildStep("textures", () -> this.panels.registerPanel(new UITextureManagerPanel(this), UIKeys.TEXTURES_TOOLTIP, Icons.MATERIAL));
         this.buildStep("audio", () -> this.panels.registerPanel(new UIAudioEditorPanel(this), UIKeys.AUDIO_TITLE, Icons.SOUND));
 
+        /* 【BBS AI Studio 底层集成】AI 面板作为原生面板注册（不再走 addon 事件） */
+        this.buildStep("bbs ai editor", () -> this.panels.registerPanel(
+            new mchorse.bbs_ai.ui.editor.UIAIEditorPanel(this),
+            mchorse.bbs_mod.l10n.L10n.lang("bbs_ai.panel.editor.title"),
+            Icons.CONSOLE));
+        this.buildStep("bbs ai tools", () -> this.panels.registerPanel(
+            new mchorse.bbs_ai.ui.panel.UIAIToolsPanel(this),
+            mchorse.bbs_mod.l10n.L10n.lang("bbs_ai.panel.title"),
+            Icons.PROCESSOR));
+
         /* Add-on panels go into the bar after ours, so this waits for the last of ours */
         this.buildStep("add-ons", () -> BBSMod.events.post(new RegisterDashboardPanelsEvent(this)));
     }
