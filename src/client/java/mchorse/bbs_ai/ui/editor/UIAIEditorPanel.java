@@ -295,7 +295,7 @@ public class UIAIEditorPanel extends UIDashboardPanel
 
                 if (!prose.isEmpty())
                 {
-                    this.messageList.add(new AITextCard(header, prose, headerColor, bodyColor, 0x26000000, accent));
+                    this.messageList.add(new AITextCard(header, prose, headerColor, bodyColor, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("card_background"), accent));
                     header = null; /* 同一角色后续卡片不再重复标头 */
                 }
             }
@@ -304,7 +304,7 @@ public class UIAIEditorPanel extends UIDashboardPanel
             String lang = block.group(1).isEmpty() ? L10n.lang("bbs_ai.editor.code.anon").get() : block.group(1);
             String code = block.group(2).trim();
 
-            this.messageList.add(new AITextCard(lang, code, 0xFF6E86A8, 0xFFB9C4D6, 0xF2080A10, 0));
+            this.messageList.add(new AITextCard(lang, code, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("text_muted"), mchorse.bbs_ai.ui.theme.ThemeManager.get().color("text"), mchorse.bbs_ai.ui.theme.ThemeManager.get().color("code_background"), 0));
 
             last = block.end();
         }
@@ -316,7 +316,7 @@ public class UIAIEditorPanel extends UIDashboardPanel
 
             if (!prose.isEmpty())
             {
-                this.messageList.add(new AITextCard(header, prose, headerColor, bodyColor, 0x26000000, accent));
+                this.messageList.add(new AITextCard(header, prose, headerColor, bodyColor, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("card_background"), accent));
             }
         }
 
@@ -533,20 +533,20 @@ public class UIAIEditorPanel extends UIDashboardPanel
             /* 现代取景框：四角括号 */
             int corner = 10;
 
-            context.batcher.box(x1, y1, x1 + corner, y1 + 1, 0xFF3A4050);
-            context.batcher.box(x1, y1, x1 + 1, y1 + corner, 0xFF3A4050);
-            context.batcher.box(x2 - corner, y1, x2, y1 + 1, 0xFF3A4050);
-            context.batcher.box(x2 - 1, y1, x2, y1 + corner, 0xFF3A4050);
-            context.batcher.box(x1, y2 - 1, x1 + corner, y2, 0xFF3A4050);
-            context.batcher.box(x1, y2 - corner, x1 + 1, y2, 0xFF3A4050);
-            context.batcher.box(x2 - corner, y2 - 1, x2, y2, 0xFF3A4050);
-            context.batcher.box(x2 - 1, y2 - corner, x2, y2, 0xFF3A4050);
+            context.batcher.box(x1, y1, x1 + corner, y1 + 1, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x1, y1, x1 + 1, y1 + corner, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x2 - corner, y1, x2, y1 + 1, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x2 - 1, y1, x2, y1 + corner, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x1, y2 - 1, x1 + corner, y2, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x1, y2 - corner, x1 + 1, y2, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x2 - corner, y2 - 1, x2, y2, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
+            context.batcher.box(x2 - 1, y2 - corner, x2, y2, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
 
             /* 信息叠加层（半透明衬底保证亮背景下可读） */
             Film film = UIAIEditorPanel.this.getCurrentFilm();
 
-            context.batcher.box(x1, y1 + 4, x2, y1 + 66, 0x90000000);
-            context.batcher.text(L10n.lang("bbs_ai.editor.viewport.title").get(), x1 + 6, y1 + 8, 0xFFAFC4E8, true);
+            context.batcher.box(x1, y1 + 4, x2, y1 + 66, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("panel_background"));
+            context.batcher.text(L10n.lang("bbs_ai.editor.viewport.title").get(), x1 + 6, y1 + 8, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("text"), true);
 
             if (film == null)
             {
@@ -557,18 +557,18 @@ public class UIAIEditorPanel extends UIDashboardPanel
             {
                 int clips = film.camera.getClips(mchorse.bbs_mod.utils.clips.Clip.class).size();
 
-                context.batcher.text(L10n.lang("bbs_ai.editor.viewport.film").format(clips, film.replays.getList().size()).get(), x1 + 6, y1 + 24, 0xFF8FD694, true);
+                context.batcher.text(L10n.lang("bbs_ai.editor.viewport.film").format(clips, film.replays.getList().size()).get(), x1 + 6, y1 + 24, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("selected"), true);
 
                 if (this.selectedClip >= 0)
                 {
-                    context.batcher.text(L10n.lang("bbs_ai.editor.viewport.clip").format(this.selectedClip).get(), x1 + 6, y1 + 40, 0xFF6EC1FF, true);
+                    context.batcher.text(L10n.lang("bbs_ai.editor.viewport.clip").format(this.selectedClip).get(), x1 + 6, y1 + 40, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("selected"), true);
                 }
 
                 mchorse.bbs_ai.preview.PreviewTrack track = PreviewSystem.get().getCache().get(STAGE_KEY);
 
                 if (track != null && track.getFrameCount() > 0)
                 {
-                    context.batcher.text(L10n.lang("bbs_ai.editor.viewport.staged").format(track.getFrameCount(), track.getStartTick(), track.getEndTick()).get(), x1 + 6, y1 + 56, 0xFF8FD694, true);
+                    context.batcher.text(L10n.lang("bbs_ai.editor.viewport.staged").format(track.getFrameCount(), track.getStartTick(), track.getEndTick()).get(), x1 + 6, y1 + 56, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("selected"), true);
                 }
             }
 
@@ -661,8 +661,8 @@ public class UIAIEditorPanel extends UIDashboardPanel
         @Override
         public void render(UIContext context)
         {
-            context.batcher.box(this.area.x, this.area.y, this.area.ex(), this.area.ey(), 0xE80C0E15);
-            context.batcher.box(this.area.x, this.area.y, this.area.x + 1, this.area.ey(), 0xFF2A2E3A);
+            context.batcher.box(this.area.x, this.area.y, this.area.ex(), this.area.ey(), mchorse.bbs_ai.ui.theme.ThemeManager.get().color("panel_background"));
+            context.batcher.box(this.area.x, this.area.y, this.area.x + 1, this.area.ey(), mchorse.bbs_ai.ui.theme.ThemeManager.get().color("border"));
 
             super.render(context);
         }
