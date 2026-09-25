@@ -130,8 +130,8 @@ public class AIToolCallLog extends UIElement
                 entry.label,
                 body,
                 this.color(entry.state),
-                0xFFAAB4C4,
-                0x28000000,
+                mchorse.bbs_ai.ui.theme.ThemeManager.get().color("text_muted"),
+                mchorse.bbs_ai.ui.theme.ThemeManager.get().color("card_background"),
                 accent
             ));
         }
@@ -164,7 +164,7 @@ public class AIToolCallLog extends UIElement
     public void render(UIContext context)
     {
         /* 底色与右侧栏统一（现代深色卡片） */
-        context.batcher.box(this.area.x, this.area.y, this.area.ex(), this.area.ey(), 0xD90D0F14);
+        context.batcher.box(this.area.x, this.area.y, this.area.ex(), this.area.ey(), mchorse.bbs_ai.ui.theme.ThemeManager.get().color("panel_background"));
 
         super.render(context);
     }
