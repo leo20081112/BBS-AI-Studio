@@ -1,0 +1,9 @@
+{
+    "main_background": "#2f3640",
+    "panel_background": "#3d4550",
+    "highlight": "#00b894",
+    "text": "#ffffff",
+    "border": "#222831",
+    "selected": "#0984e3",
+    "warning": "#fdcb6e"
+}
