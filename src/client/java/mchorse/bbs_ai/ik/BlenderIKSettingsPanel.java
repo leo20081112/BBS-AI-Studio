@@ -42,7 +42,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
 
     public BlenderIKSettingsPanel(BlenderIKComponent component, Runnable onSolve)
     {
-        super(IKey.constant("Blender IK 约束（" + component.name + "）"));
+        super(L10n.lang("bbs_ai.ik.super_title").format(component.name));
 
         this.component = component;
         this.onSolve = onSolve;
@@ -55,15 +55,15 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         int y = 8;
 
         /* ---- 目标（Target Empty） ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.11"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.target"), y, scroll);
         y = this.addVectorInputs(this.component.constraint.target, y, scroll);
 
         /* ---- 极向目标（Pole Target） ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.12"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.pole_target"), y, scroll);
         y = this.addVectorInputs(this.getOrCreatePole(), y, scroll);
 
         /* ---- 极向角度 ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.13"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.pole_angle"), y, scroll);
 
         UITrackpad poleAngle = new UITrackpad((v) ->
         {
@@ -78,7 +78,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         y += 26;
 
         /* ---- 链选项折叠区 ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.14"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.chain"), y, scroll);
 
         UITrackpad chainLength = new UITrackpad((v) ->
         {
@@ -91,7 +91,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         scroll.add(chainLength);
         y += 24;
 
-        UIToggle useTail = new UIToggle(L10n.lang("bbs_ai.str.ikPanel.1"), this.component.constraint.useTail, (b) ->
+        UIToggle useTail = new UIToggle(L10n.lang("bbs_ai.ik.use_tail"), this.component.constraint.useTail, (b) ->
         {
             this.component.constraint.useTail = b.getValue();
             this.solve();
@@ -101,7 +101,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         scroll.add(useTail);
         y += 22;
 
-        UIToggle follow = new UIToggle(L10n.lang("bbs_ai.str.ikPanel.2"), this.component.constraint.useAnchor, (b) ->
+        UIToggle follow = new UIToggle(L10n.lang("bbs_ai.ik.follow"), this.component.constraint.useAnchor, (b) ->
         {
             this.component.constraint.useAnchor = b.getValue();
             this.solve();
@@ -112,7 +112,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         y += 26;
 
         /* ---- FK/IK 混合 ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.18"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.influence"), y, scroll);
 
         UITrackpad influence = new UITrackpad((v) ->
         {
@@ -126,9 +126,9 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         y += 26;
 
         /* ---- 拉伸折叠区 ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.15"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.stretch"), y, scroll);
 
-        UIToggle stretch = new UIToggle(L10n.lang("bbs_ai.str.ikPanel.3"), this.component.constraint.useStretch, (b) ->
+        UIToggle stretch = new UIToggle(L10n.lang("bbs_ai.ik.stretch"), this.component.constraint.useStretch, (b) ->
         {
             this.component.constraint.useStretch = b.getValue();
             this.solve();
@@ -150,7 +150,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         y += 26;
 
         /* ---- 目标旋转与权重衰减 ---- */
-        UIToggle targetRotation = new UIToggle(L10n.lang("bbs_ai.str.ikPanel.4"), this.component.constraint.useTargetRotation, (b) ->
+        UIToggle targetRotation = new UIToggle(L10n.lang("bbs_ai.ik.target_rot"), this.component.constraint.useTargetRotation, (b) ->
         {
             this.component.constraint.useTargetRotation = b.getValue();
             this.solve();
@@ -160,7 +160,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         scroll.add(targetRotation);
         y += 22;
 
-        UIToggle falloff = new UIToggle(L10n.lang("bbs_ai.str.ikPanel.5"), this.component.constraint.useWeightFalloff, (b) ->
+        UIToggle falloff = new UIToggle(L10n.lang("bbs_ai.ik.falloff"), this.component.constraint.useWeightFalloff, (b) ->
         {
             this.component.constraint.useWeightFalloff = b.getValue();
             this.solve();
@@ -171,7 +171,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         y += 26;
 
         /* ---- 锚点跟随（手/脚旋转时的锚点联动） ---- */
-        y = this.addLabel(L10n.lang("bbs_ai.str.ikPanel.19"), y, scroll);
+        y = this.addLabel(L10n.lang("bbs_ai.ik.anchor"), y, scroll);
 
         mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate anchorMode = new mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate((c) ->
         {
@@ -179,9 +179,9 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
             this.solve();
         });
 
-        anchorMode.addLabel(L10n.lang("bbs_ai.str.ikPanel.6"));
-        anchorMode.addLabel(L10n.lang("bbs_ai.str.ikPanel.7"));
-        anchorMode.addLabel(L10n.lang("bbs_ai.str.ikPanel.8"));
+        anchorMode.addLabel(L10n.lang("bbs_ai.ik.mode_none"));
+        anchorMode.addLabel(L10n.lang("bbs_ai.ik.mode_foot"));
+        anchorMode.addLabel(L10n.lang("bbs_ai.ik.mode_hand"));
         anchorMode.setValue(this.component.constraint.anchorMode);
         anchorMode.relative(scroll).xy(10, y).w(1F, -20).h(20);
         scroll.add(anchorMode);
@@ -209,7 +209,7 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         scroll.add(anchorRelease);
         y += 24;
 
-        UILabel anchoredState = new UILabel(L10n.lang("bbs_ai.str.ikPanel.9"));
+        UILabel anchoredState = new UILabel(L10n.lang("bbs_ai.ik.release_hint"));
 
         anchoredState.color(0x666666);
         anchoredState.relative(scroll).xy(10, y).w(1F, -20);
