@@ -228,3 +228,28 @@ Honest list of what the API does not cover yet, so nobody hunts for a method tha
   (as opposed to its own animated property, which the modifier above covers) has no way in yet.
 - **Adding a tab to someone else's editor panel.** A form's panels are registered on the form's
   own editor; there is no hook to add one to a form you did not write.
+
+## BBS AI Studio extension points (fork-specific)
+
+On top of BBS's own addon API, this fork ships an AI facade addons can call:
+`mchorse.bbs_mod.ai.AICore` (in the BBS AI Studio jar, so no extra dependency
+when you already build against BBS). It is a fork extension, not part of the
+upstream `mchorse.bbs_mod.api` contract — pin your version checks accordingly.
+
+- **`AICore.generate(systemPrompt, userPrompt)`** — one async text generation
+  call through the player's configured provider. Callbacks run on a background
+  thread; hop back to the client thread yourself.
+- **`AICore.registerModKnowledge(modId, name, category, summary, aiHint, capabilities...)`** —
+  teach the built-in knowledge base about *your* mod, so every AI feature
+  (storyboard generation, the AI editor chat) describes it correctly. `summary`
+  is what it is, `aiHint` is what it is worth during filming.
+- **`AICore.registerModAdapter(IModAdapter)`** — deeper integration: your
+  adapter appends capability notes when your mod is present (`modIds()`), or
+  applies to every mod (`appliesToAll()`). See
+  `mchorse.bbs_ai.compat.EntitySourceAdapter` for a minimal example.
+- **`AICore.registerContextProvider(Supplier<String>)`** — feed extra context
+  (world state, your own systems) into every AI prompt.
+
+The scanned environment is also dumped to `config/bbs/ai/mods_report.json`
+(re-scan via the "Mod compatibility" section of the AI tools panel), so an
+external tool can consume the same knowledge.
