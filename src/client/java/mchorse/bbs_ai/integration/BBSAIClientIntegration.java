@@ -136,6 +136,12 @@ public class BBSAIClientIntegration
             L10n.lang("bbs_ai.str.toolsPanel.13")
         );
         BBSAISettings.motionPoseModel.modes(L10n.lang("bbs_ai.str.clientInteg.5"), L10n.lang("bbs_ai.str.clientInteg.6"));
+
+        /* 主题设置变更 → ThemeManager 跟随（/bbs_ai theme 与设置界面统一入口） */
+        BBSAISettings.uiTheme.postCallback((v, f) ->
+        {
+            mchorse.bbs_ai.ui.theme.ThemeManager.get().setTheme(mchorse.bbs_ai.ui.theme.UITheme.byIndex(BBSAISettings.uiTheme.get()));
+        });
         BBSAISettings.ikMode.modes(L10n.lang("bbs_ai.str.clientInteg.7"), L10n.lang("bbs_ai.str.clientInteg.8"));
 
         /* 3. 初始化客户端服务 */

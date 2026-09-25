@@ -92,8 +92,8 @@ public class AIFilmEvents
                 continue;
             }
 
-            context.batcher.box(x - 1, area.y + 2, x + 1, area.ey() - 2, 0xFFE0B040);
-            context.batcher.text(shotLabel, x + 3, area.y + 2, 0xFFE0B040, true);
+            context.batcher.box(x - 1, area.y + 2, x + 1, area.ey() - 2, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("highlight"));
+            context.batcher.text(shotLabel, x + 3, area.y + 2, mchorse.bbs_ai.ui.theme.ThemeManager.get().color("highlight"), true);
         }
     }
 }
