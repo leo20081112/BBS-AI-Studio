@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  * AI 服务总控（单例）
  *
  * <p>管理 AI 配置与 Provider 的生命周期，对外提供统一的生成 / 测试连接入口。
- * 在 {@code BBSAIStudioMod} 初始化的最后调用 {@link #initialize()}【原版兼容】。</p>
+ * 在底层启动链（{@code mchorse.bbs_mod.ai.AICore}，由 BBSMod.onInitialize 调用）中初始化。</p>
  *
  * <p>接口契约：
  * <ul>

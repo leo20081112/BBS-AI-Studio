@@ -70,12 +70,12 @@ public class BlenderIKSolver
             /* 可达半径 = 静态总长 × 拉伸上限（未启用拉伸时上限为 1） */
             float effectiveReach = restLength * (constraint.useStretch ? stretchLimit : 1.0F);
 
-            float distanceToTarget = rootBone.head.distance(constraint.target);
+            float distanceToTarget = rootBone.head.distance(constraint.getTargetLocal());
 
             if (distanceToTarget > effectiveReach && distanceToTarget > 0.0001F)
             {
                 /* 根骨骼沿目标方向平移超出量 */
-                Vector3f direction = new Vector3f(constraint.target).sub(rootBone.head).normalize();
+                Vector3f direction = new Vector3f(constraint.getTargetLocal()).sub(rootBone.head).normalize();
                 Vector3f offset = direction.mul(distanceToTarget - effectiveReach);
 
                 rootBone.head.add(offset);
@@ -116,7 +116,7 @@ public class BlenderIKSolver
 
                 IKBone endBone = constraint.useTail ? chain.getTipBone() : this.endHeadBone(chain, affected);
                 Vector3f end = constraint.useTail ? endBone.tail : endBone.head;
-                float distanceBefore = end.distance(constraint.target);
+                float distanceBefore = end.distance(constraint.getTargetLocal());
 
                 if (distanceBefore <= CONVERGENCE)
                 {
@@ -125,7 +125,7 @@ public class BlenderIKSolver
 
                 /* 计算当前骨骼使末端转向目标所需旋转增量 */
                 Vector3f toEnd = new Vector3f(end).sub(bone.head);
-                Vector3f toTarget = new Vector3f(constraint.target).sub(bone.head);
+                Vector3f toTarget = new Vector3f(constraint.getTargetLocal()).sub(bone.head);
 
                 if (toEnd.lengthSquared() < 1.0E-8F || toTarget.lengthSquared() < 1.0E-8F)
                 {
@@ -202,7 +202,99 @@ public class BlenderIKSolver
             }
         }
 
+        /* 8. 锚点跟随：末端（手/脚）旋转时的锚点联动 */
+        this.applyAnchorFollow(chain, constraint);
+
         return converged;
+    }
+
+    /**
+     * 锚点跟随补偿
+     *
+     * <p>两种模式（约束面板开关）：
+     * <ul>
+     *   <li><b>脚部贴地（mode=1）</b>：锚定后末端端点被钉回锚定位置（贴地点），
+     *       身体/腿移动或旋转造成末端偏移时整链向锚点回位 —— 脚底不滑</li>
+     *   <li><b>手部抓附（mode=2）</b>：末端旋转相对锚定快照的偏移 ΔR 把锚定点
+     *       绕末端骨骼头部旋转，锚点走到的位置即补偿后的目标方向 —— 抓附点随手转</li>
+     * </ul>
+     * 末端旋转偏移超过释放阈值后锚定释放（脚抬步 / 手松开），下一次解算在新位置重新锚定。</p>
+     */
+    private void applyAnchorFollow(IKBoneChain chain, BlenderIKConstraint constraint)
+    {
+        if (constraint.anchorMode == 0)
+        {
+            constraint.anchored = false;
+
+            return;
+        }
+
+        IKBone tip = chain.getTipBone();
+
+        if (tip == null)
+        {
+            return;
+        }
+
+        Vector3f tipEnd = constraint.useTail ? tip.tail : tip.head;
+
+        /* 未锚定：记录锚点与末端姿态快照，进入锚定状态 */
+        if (!constraint.anchored)
+        {
+            constraint.anchored = true;
+            constraint.anchorPoint.set(tipEnd);
+            constraint.anchorRestRotation.set(tip.rotation);
+
+            return;
+        }
+
+        /* 已锚定：末端旋转相对快照的偏移量（度，欧拉空间近似） */
+        Vector3f rotationDelta = new Vector3f(tip.rotation).sub(constraint.anchorRestRotation);
+        float deltaAngle = rotationDelta.length();
+
+        /* 超过释放阈值：释放锚定（下帧在新位置重新锚定） */
+        if (deltaAngle > constraint.anchorReleaseAngle)
+        {
+            constraint.anchored = false;
+
+            return;
+        }
+
+        Vector3f compensation = new Vector3f();
+
+        if (constraint.anchorMode == 1)
+        {
+            /* 脚部贴地：末端端点钉回锚定位置（水平防滑 + 垂直贴地） */
+            compensation.set(constraint.anchorPoint).sub(tipEnd);
+        }
+        else
+        {
+            /* 手部抓附：锚定点随 ΔR 绕末端骨骼头部旋转，链跟随旋转后的锚点 */
+            org.joml.Matrix4f anchorRotation = new org.joml.Matrix4f().rotationXYZ(
+                (float) Math.toRadians(rotationDelta.x),
+                (float) Math.toRadians(rotationDelta.y),
+                (float) Math.toRadians(rotationDelta.z)
+            );
+
+            Vector3f anchored = new Vector3f(constraint.anchorPoint).sub(tip.head);
+
+            anchorRotation.transformDirection(anchored);
+            anchored.add(tip.head);
+
+            compensation.set(anchored).sub(tipEnd);
+        }
+
+        compensation.mul(constraint.anchorStrength);
+
+        /* 补偿量作用于整条链（锚点不动，身体/根被拉回） */
+        if (compensation.lengthSquared() > 1.0E-10F)
+        {
+            for (IKBone bone : chain.getBones())
+            {
+                bone.head.add(compensation);
+                bone.tail.add(compensation);
+            }
+        }
     }
 
     /**
@@ -313,7 +405,7 @@ public class BlenderIKSolver
         }
 
         float restLength = chain.calculateRestLength();
-        float distance = root.head.distance(constraint.target);
+        float distance = root.head.distance(constraint.getTargetLocal());
 
         if (distance <= restLength)
         {

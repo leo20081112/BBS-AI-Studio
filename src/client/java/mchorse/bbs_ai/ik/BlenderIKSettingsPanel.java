@@ -163,6 +163,52 @@ public class BlenderIKSettingsPanel extends UIOverlayPanel
         this.content.add(falloff);
         y += 26;
 
+        /* ---- 锚点跟随（手/脚旋转时的锚点联动） ---- */
+        y = this.addLabel("锚点跟随（手/脚）", y);
+
+        mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate anchorMode = new mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate((c) ->
+        {
+            this.component.constraint.anchorMode = c.getValue();
+            this.solve();
+        });
+
+        anchorMode.addLabel(IKey.constant("无"));
+        anchorMode.addLabel(IKey.constant("脚部贴地"));
+        anchorMode.addLabel(IKey.constant("手部抓附"));
+        anchorMode.setValue(this.component.constraint.anchorMode);
+        anchorMode.relative(this.content).xy(10, y).w(1F, -20).h(20);
+        this.content.add(anchorMode);
+        y += 24;
+
+        UITrackpad anchorStrength = new UITrackpad((v) ->
+        {
+            this.component.constraint.anchorStrength = v.floatValue();
+            this.solve();
+        });
+
+        anchorStrength.limit(0.0F, 1.0F).setValue(this.component.constraint.anchorStrength);
+        anchorStrength.relative(this.content).xy(10, y).w(1F, -20).h(20);
+        this.content.add(anchorStrength);
+        y += 24;
+
+        UITrackpad anchorRelease = new UITrackpad((v) ->
+        {
+            this.component.constraint.anchorReleaseAngle = v.floatValue();
+            this.solve();
+        });
+
+        anchorRelease.limit(1.0F, 90.0F).setValue(this.component.constraint.anchorReleaseAngle);
+        anchorRelease.relative(this.content).xy(10, y).w(1F, -20).h(20);
+        this.content.add(anchorRelease);
+        y += 24;
+
+        UILabel anchoredState = new UILabel(IKey.constant("释放阈值：末端旋转偏移超过该角度后解除锚定（脚抬步/手松开）"));
+
+        anchoredState.color(0x666666);
+        anchoredState.relative(this.content).xy(10, y).w(1F, -20);
+        this.content.add(anchoredState);
+        y += 18;
+
         /* ---- 解算按钮 ---- */
         UIButton solve = new UIButton(IKey.constant("解算并预览"), (b) -> this.solve());
 

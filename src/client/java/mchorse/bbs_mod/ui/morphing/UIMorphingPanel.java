@@ -6,6 +6,7 @@ import mchorse.bbs_mod.forms.forms.Form;
 import mchorse.bbs_mod.morphing.IMorphProvider;
 import mchorse.bbs_mod.morphing.Morph;
 import mchorse.bbs_mod.network.ClientNetwork;
+import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.UIKeys;
 import mchorse.bbs_mod.ui.dashboard.UIDashboard;
 import mchorse.bbs_mod.ui.dashboard.panels.UIDashboardPanel;
@@ -22,6 +23,7 @@ public class UIMorphingPanel extends UIDashboardPanel
 {
     public UIFormPalette palette;
     public UIIcon demorph;
+    public UIIcon aiAssist;
     public UIIcon fromMob;
 
     private ImmersiveMorphingCameraController controller;
@@ -56,7 +58,37 @@ public class UIMorphingPanel extends UIDashboardPanel
         });
         this.fromMob.tooltip(UIKeys.MORPHING_FROM_MOB, Direction.TOP);
 
-        this.palette.list.bar.add(this.fromMob, this.demorph);
+        /* 【BBS AI Studio】变形 AI 助手：按当前 mod 环境推荐可用演员形态 */
+        this.aiAssist = new UIIcon(Icons.MAZE, (b) ->
+        {
+            mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                this.getContext(),
+                new mchorse.bbs_ai.ui.ai.UIAIAssistMenu(
+                    "变形 AI 助手",
+                    "根据当前 mod 环境推荐可用的演员形态（实体形态可直接入镜）",
+                    java.util.List.of(
+                        new mchorse.bbs_ai.ui.ai.UIAIAssistMenu.Entry("推荐演员形态（分析 mod 环境）", () ->
+                        {
+                            mchorse.bbs_ai.integration.BBSAIClientIntegration.showSection("mods");
+                        }),
+                        new mchorse.bbs_ai.ui.ai.UIAIAssistMenu.Entry("打开 AI 编辑器", () ->
+                        {
+                            mchorse.bbs_ai.ui.editor.UIAIEditorPanel panel = dashboard.getPanel(mchorse.bbs_ai.ui.editor.UIAIEditorPanel.class);
+
+                            if (panel != null)
+                            {
+                                dashboard.setPanel(panel);
+                            }
+                        })
+                    )
+                ),
+                300,
+                160
+            );
+        });
+        this.aiAssist.tooltip(IKey.constant("AI 助手（演员形态推荐）"), Direction.TOP);
+
+        this.palette.list.bar.add(this.aiAssist, this.fromMob, this.demorph);
 
         this.add(this.palette);
 

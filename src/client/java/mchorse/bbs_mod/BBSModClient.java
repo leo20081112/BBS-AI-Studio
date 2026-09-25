@@ -547,7 +547,9 @@ public class BBSModClient implements ClientModInitializer
         videos = new VideoManager();
         fonts = new FontManager();
         l10n = new L10n();
-        l10n.register((lang) -> Collections.singletonList(Link.assets("strings/" + lang + ".json")));
+
+        /* 【BBS AI Studio 底层集成】AI 模块语言文件与上游同机制注册（原 addon 事件注册并入底层） */
+        l10n.register((lang) -> Collections.singletonList(Link.assets("strings/bbs_ai_" + lang + ".json")));        l10n.register((lang) -> Collections.singletonList(Link.assets("strings/" + lang + ".json")));
 
         /* Addons add their own language files here, so the event goes out before the load and not
          * after it — otherwise every addon label would show its raw key until the next language
@@ -1031,6 +1033,11 @@ public class BBSModClient implements ClientModInitializer
         {
             BBSMod.getAssetsPath("models/player/" + path + "/").mkdirs();
         }
+
+        /* 【BBS AI Studio 底层集成】AI 客户端服务随主初始化启动（键位/主题/语言/预览/调试桥），
+         * 详见 mchorse.bbs_ai.integration.BBSAIClientIntegration。在 BBSClientReadyEvent
+         * 之前调用，保证 ready 时的 addon 已能使用全部 AI 客户端设施。 */
+        mchorse.bbs_ai.integration.BBSAIClientIntegration.initialize();
 
         BBSMod.events.post(new BBSClientReadyEvent());
     }

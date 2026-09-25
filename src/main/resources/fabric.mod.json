@@ -36,15 +36,10 @@
     "environment": "*",
     "entrypoints": {
         "main": [
-            "mchorse.bbs_mod.BBSMod",
-            "mchorse.bbs_ai.integration.BBSAIStudioMod"
+            "mchorse.bbs_mod.BBSMod"
         ],
         "client": [
-            "mchorse.bbs_mod.BBSModClient",
-            "mchorse.bbs_ai.integration.BBSAIStudioModClient"
-        ],
-        "bbs-client-addon": [
-            "mchorse.bbs_ai.integration.BBSAIStudioAddon"
+            "mchorse.bbs_mod.BBSModClient"
         ]
     },
     "mixins": [
