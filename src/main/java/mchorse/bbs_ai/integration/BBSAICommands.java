@@ -85,7 +85,62 @@ public class BBSAICommands
         /* /bbs_ai version */
         bbsAi.then(CommandManager.literal("version").executes(BBSAICommands::version));
 
+        /* /bbs_ai mods —— 查看 AI 对当前 mod 环境的理解（自动识别摘要） */
+        bbsAi.then(CommandManager.literal("mods").executes(BBSAICommands::listMods));
+
+        /* /bbs_ai undo / redo —— 撤销 / 重做最近一次 AI 操作 */
+        bbsAi.then(CommandManager.literal("undo").executes((ctx) -> undoRedo(ctx, true)));
+        bbsAi.then(CommandManager.literal("redo").executes((ctx) -> undoRedo(ctx, false)));
+
         dispatcher.register(bbsAi);
+    }
+
+    /**
+     * /bbs_ai undo|redo：撤销/重做（须在主线程执行 Runnable，包一层 execute）
+     */
+    private static int undoRedo(CommandContext<ServerCommandSource> ctx, boolean undo)
+    {
+        net.minecraft.server.MinecraftServer server = ctx.getSource().getServer();
+
+        server.execute(() ->
+        {
+            String description = undo
+                ? mchorse.bbs_ai.core.AIUndoManager.get().undo()
+                : mchorse.bbs_ai.core.AIUndoManager.get().redo();
+
+            feedback(ctx, description == null
+                ? (undo ? "没有可撤销的 AI 操作" : "没有可重做的 AI 操作")
+                : (undo ? "已撤销：" : "已重做：") + description);
+        });
+
+        return 1;
+    }
+
+    /**
+     * /bbs_ai mods：输出 mod 自动识别摘要（命中知识库的重点 mod）
+     */
+    private static int listMods(CommandContext<ServerCommandSource> ctx)
+    {
+        mchorse.bbs_ai.mods.ModCompatScanner scanner = mchorse.bbs_ai.mods.ModCompatScanner.get();
+
+        feedback(ctx, scanner.summaryLine());
+
+        int shown = 0;
+
+        for (mchorse.bbs_ai.mods.ModInfo info : scanner.getMods())
+        {
+            if (!info.isKnown() || shown >= 6)
+            {
+                continue;
+            }
+
+            feedback(ctx, "· " + info.knowledge.name + "（" + info.id + "）：" + info.knowledge.aiHint);
+            shown++;
+        }
+
+        feedback(ctx, "完整报告见 AI 工具面板 → Mod 兼容环境 → 导出 AI 知识库");
+
+        return 1;
     }
 
     /**
@@ -99,11 +154,17 @@ public class BBSAICommands
         {
             StoryboardScript script = StoryboardScript.fromJson(text);
             Film film = new StoryboardToFilmConverter().convert(script);
+            mchorse.bbs_mod.data.types.MapType data = (mchorse.bbs_mod.data.types.MapType) film.toData();
             String name = "ai_storyboard_" + System.currentTimeMillis() / 1000;
 
-            BBSMod.getFilms().create(name, (MapType) film.toData());
+            BBSMod.getFilms().create(name, data);
 
-            return feedback(ctx, "分镜已转换为影片：" + name + "（" + script.shots.size() + " 个镜头）");
+            /* 与编辑器动作一致：登记撤销/重做 */
+            mchorse.bbs_ai.core.AIUndoManager.get().record("film", "生成影片 " + name,
+                () -> BBSMod.getFilms().delete(name),
+                () -> BBSMod.getFilms().create(name, data));
+
+            return feedback(ctx, "分镜已转换为影片：" + name + "（" + script.shots.size() + " 个镜头，可 /bbs_ai undo 撤销）");
         }
         catch (Exception e)
         {

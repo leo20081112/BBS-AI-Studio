@@ -231,6 +231,27 @@ public class UIFilmPanel extends UIDataDashboardPanel<Film> implements IFlightSu
             .layout(this.layoutLock, () -> this.dock.isLocked())
             .menu(this.openFilmMenu);
 
+        /* 【BBS AI Studio】影片编辑 AI 助手：动作栏 AI 按钮（面板专属 AI 动作菜单） */
+        this.actions().action(new UIIcon(Icons.MAZE, (b) ->
+        {
+            this.getContext().replaceContextMenu((menu) ->
+            {
+                menu.action(Icons.MAZE, IKey.constant("打开 AI 编辑器（分镜/动作生成）"), () ->
+                {
+                    mchorse.bbs_ai.ui.editor.UIAIEditorPanel panel = this.dashboard.getPanel(mchorse.bbs_ai.ui.editor.UIAIEditorPanel.class);
+
+                    if (panel != null)
+                    {
+                        this.dashboard.setPanel(panel);
+                    }
+                });
+                menu.action(Icons.PROPERTIES, IKey.constant("分析当前 mod 环境（选角参考）"), () ->
+                {
+                    mchorse.bbs_ai.integration.BBSAIClientIntegration.showSection("mods");
+                });
+            });
+        }));
+
         /* Setup elements */
 
         this.main.add(this.cameraEditor, this.replayEditor);

@@ -29,8 +29,32 @@ public class BlenderIKConstraint
 {
     /**
      * 目标位置（Target Empty）
+     *
+     * <p>语义：当 {@link #worldOrigin} 非 null 时为<b>世界绝对坐标</b>
+     * （Gizmo 投影锚定用），解算时取 {@link #getTargetLocal()}；
+     * worldOrigin 为 null（默认，纯数据用法）时即链局部坐标。</p>
      */
     public final Vector3f target = new Vector3f();
+
+    /**
+     * 链根的世界锚点（null = target 即局部坐标）。
+     * Gizmo 世界锚定模式下由宿主设置（如玩家脚下位置），
+     * 拖拽 Gizmo 改动的是世界 target，解算器使用相对此锚点的局部目标。
+     */
+    public Vector3f worldOrigin;
+
+    /**
+     * 解算用局部目标：worldOrigin 非 null 时 = target - worldOrigin，否则 = target
+     */
+    public Vector3f getTargetLocal()
+    {
+        if (this.worldOrigin == null)
+        {
+            return this.target;
+        }
+
+        return new Vector3f(this.target).sub(this.worldOrigin);
+    }
 
     /**
      * 极向目标位置（Pole Target Empty，可为 null = 无极向）
@@ -91,6 +115,41 @@ public class BlenderIKConstraint
      * 权重衰减强度（0 = 不衰减，1 = 根部权重趋近 0）
      */
     public float weightFalloff = 0.5F;
+
+    /* ====================================================================
+     * 锚点跟随（手/脚旋转时的锚点联动）
+     * ==================================================================== */
+
+    /**
+     * 锚定模式：0 = 无，1 = 脚部贴地（末端钉回锚定位置，防滑），2 = 手部抓附（锚点随末端旋转联动，目标跟转）
+     */
+    public int anchorMode = 0;
+
+    /**
+     * 锚定强度（0~1，补偿权重）
+     */
+    public float anchorStrength = 1.0F;
+
+    /**
+     * 释放阈值（度）：末端相对锚定时刻的旋转偏移超过该值后释放锚定
+     * （脚抬步 / 手松开），随后在新的位置重新锚定
+     */
+    public float anchorReleaseAngle = 25.0F;
+
+    /**
+     * 锚定激活时的末端端点快照（运行时状态；FOOT 模式即贴地点）
+     */
+    public final Vector3f anchorPoint = new Vector3f();
+
+    /**
+     * 锚定激活时的末端旋转快照（欧拉，度，运行时状态）
+     */
+    public final Vector3f anchorRestRotation = new Vector3f();
+
+    /**
+     * 锚定是否处于激活状态（运行时状态，由解算器维护）
+     */
+    public boolean anchored;
 
     /**
      * 每根骨骼的旋转限制（骨骼名 → [是否启用, min(x,y,z), max(x,y,z)]）

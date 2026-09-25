@@ -2,7 +2,9 @@ package mchorse.bbs_ai.ui.panel;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -11,12 +13,14 @@ import mchorse.bbs_ai.core.AIServiceManager;
 import mchorse.bbs_ai.core.BBSAISettings;
 import mchorse.bbs_ai.core.api.APIException;
 import mchorse.bbs_ai.ik.BlenderIKComponent;
-import mchorse.bbs_ai.ik.BlenderIKGizmo;
 import mchorse.bbs_ai.ik.BlenderIKSettingsPanel;
 import mchorse.bbs_ai.ik.IKBone;
 import mchorse.bbs_ai.ik.IKBoneChain;
 import mchorse.bbs_ai.import_manager.ImportEntry;
 import mchorse.bbs_ai.import_manager.ImportManager;
+import mchorse.bbs_ai.mods.AIContextService;
+import mchorse.bbs_ai.mods.ModCompatScanner;
+import mchorse.bbs_ai.mods.ModInfo;
 import mchorse.bbs_ai.motion.VideoFrameExtractor;
 import mchorse.bbs_ai.motion.VideoRecognitionPipeline;
 import mchorse.bbs_ai.preview.BakeConfirmationDialog;
@@ -30,48 +34,58 @@ import mchorse.bbs_ai.ui.hotkey.FirstTimeGuide;
 import mchorse.bbs_ai.ui.hotkey.HotkeySettingsPanel;
 import mchorse.bbs_ai.ui.hotkey.StatusBar;
 import mchorse.bbs_ai.ui.language.LanguageManager;
+import mchorse.bbs_ai.ui.language.UILanguage;
 import mchorse.bbs_ai.ui.theme.ThemeManager;
 import mchorse.bbs_ai.ui.theme.UITheme;
 import mchorse.bbs_ai.ui.transform.KeyBindingOverrideManager;
-import mchorse.bbs_ai.ui.transform.OperationMode;
 import mchorse.bbs_mod.BBSMod;
 import mchorse.bbs_mod.data.types.MapType;
 import mchorse.bbs_mod.film.Film;
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.dashboard.UIDashboard;
 import mchorse.bbs_mod.ui.dashboard.panels.UIDashboardPanel;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
+import mchorse.bbs_mod.ui.framework.elements.UIScrollView;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIButton;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIToggle;
-import mchorse.bbs_mod.ui.framework.elements.input.UITrackpad;
 import mchorse.bbs_mod.ui.framework.elements.input.list.UIStringList;
 import mchorse.bbs_mod.ui.framework.elements.input.text.UITextarea;
 import mchorse.bbs_mod.ui.framework.elements.input.text.UITextbox;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay;
 import mchorse.bbs_mod.ui.framework.elements.utils.UILabel;
-import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.ui.utils.UI;
-import mchorse.bbs_mod.ui.utils.icons.Icon;
+import mchorse.bbs_mod.ui.utils.UIConstants;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
 import mchorse.bbs_mod.utils.colors.Colors;
 
 /**
- * BBS AI Studio 主面板（仪表盘面板）
+ * BBS AI Studio 主面板（AI 工具）
  *
- * <p>六个功能区（顶部图标切换）：导入管理 / 视频识别 / 分镜生成 / AI 设置 / IK 调整 / 界面，
- * 底部为快捷键状态栏。数据流遵循项目规范：所有生成结果先进预览系统，
+ * <p>原生风格重构：全部功能以 {@code UISection} 折叠卡片纵向堆叠在滚动区里
+ * （与上游 Model blocks / Particles 面板同款观感），替代旧版顶部图标切换。
+ * 功能区块：AI 设置 / 分镜生成 / 视频识别 / 导入管理 / 人物模型 / IK 调整 /
+ * Mod 兼容（自动识别环境）/ 界面；底部为快捷键状态栏。</p>
+ *
+ * <p>数据流遵循项目规范：所有生成结果先进预览系统，
  * 经 BakeConfirmationDialog 确认后才写入正式 Film【原版兼容】。</p>
  *
  * <p>作者：BBS AI Studio</p>
  */
 public class UIAIToolsPanel extends UIDashboardPanel
 {
-    /* ---- 区块切换 ---- */
-    private final UIElement sectionHost = new UIElement();
-    private UIElement currentSection;
+    /**
+     * 区块折叠状态记忆（面板重建后保持）
+     */
+    private final Map<String, Boolean> folds = new HashMap<>();
+
+    /**
+     * 区块 id → UISection（showSection 展开）
+     */
+    private final Map<String, mchorse.bbs_mod.ui.framework.elements.UISection> sections = new HashMap<>();
 
     /* ---- 导入管理 ---- */
     private UIStringList importList;
@@ -84,9 +98,8 @@ public class UIAIToolsPanel extends UIDashboardPanel
     private UILabel recognizeProgress;
     private final VideoRecognitionPipeline pipeline = new VideoRecognitionPipeline();
 
-    /* ---- 分镜生成 ---- */
-    private UITextarea storyboardPrompt;
-    private UILabel storyboardStatus;
+    /* ---- 分镜生成（已迁移至 AI 编辑器，此区块为入口） ---- */
+    private UILabel storyboardHint;
 
     /* ---- AI 设置 ---- */
     private UICirculate providerCirculate;
@@ -96,9 +109,14 @@ public class UIAIToolsPanel extends UIDashboardPanel
     private UITextbox modelBox;
     private UILabel testResult;
 
+    /* ---- Mod 兼容 ---- */
+    private UILabel modsSummary;
+    private UIStringList modsList;
+    private UILabel modsInfo;
+    private List<ModInfo> modInfos = new ArrayList<>();
+
     /* ---- IK ---- */
     private final BlenderIKComponent ikComponent;
-    private final BlenderIKGizmo gizmo;
 
     /* ---- 界面 ---- */
     private UICirculate themeCirculate;
@@ -108,39 +126,40 @@ public class UIAIToolsPanel extends UIDashboardPanel
     /* ---- 状态栏 ---- */
     private final StatusBar statusBar = new StatusBar();
 
+    /**
+     * 预览 HUD 渲染器（复用实例，复杂场景下减少每帧分配）
+     */
+    private final PreviewRenderer previewRenderer = new PreviewRenderer();
+
     public UIAIToolsPanel(UIDashboard dashboard)
     {
         super(dashboard);
 
-        /* 顶部区块切换图标 */
-        UIElement topBar = UI.row(2,
-            this.icon(Icons.DOWNLOAD, "bbs_ai.panel.tab.import", "import"),
-            this.icon(Icons.VIDEO_CAMERA, "bbs_ai.panel.tab.video", "video"),
-            this.icon(Icons.FONT, "bbs_ai.panel.tab.storyboard", "storyboard"),
-            this.icon(Icons.PROCESSOR, "bbs_ai.panel.tab.settings", "settings"),
-            this.icon(Icons.IK, "bbs_ai.panel.tab.ik", "ik"),
-            this.icon(Icons.IMAGE, "bbs_ai.panel.tab.model", "model"),
-            this.icon(Icons.LAYOUT, "bbs_ai.panel.tab.interface", "interface")
+        /* IK 组件（head 链演示，供约束面板与解算预览使用） */
+        this.ikComponent = new BlenderIKComponent("ik_head", this.buildDemoChain());
+
+        /* 主滚动区：折叠区块纵向堆叠（上游原生形态） */
+        UIScrollView scroll = UI.scrollView(UIConstants.MARGIN, UIConstants.SCROLL_PADDING,
+            this.buildSettingsSection(),
+            this.buildStoryboardSection(),
+            this.buildVideoSection(),
+            this.buildImportSection(),
+            this.buildModelSection(),
+            this.buildIKSection(),
+            this.buildModsSection(),
+            this.buildInterfaceSection()
         );
 
-        topBar.relative(this).xy(0, 0).w(1F).h(24);
-
-        this.sectionHost.relative(this).xy(0, 24).w(1F).h(1F, -40);
+        scroll.relative(this).xy(0, 0).w(1F).h(1F, -18);
         this.statusBar.relative(this).y(1F, -16).w(1F).h(16);
 
-        this.add(topBar, this.sectionHost, this.statusBar);
-
-        /* IK 组件（head 链演示） */
-        this.ikComponent = new BlenderIKComponent("ik_head", this.buildDemoChain());
-        this.gizmo = new BlenderIKGizmo(this.ikComponent);
-        this.gizmo.setOnSolve(this::solveIK);
-
-        this.showSection("import");
+        this.add(scroll, this.statusBar);
 
         /* bbs-fs 2.6 起 appear/disappear 为 final，生命周期逻辑改在构造期注册回调 */
         this.onAppear(() ->
         {
             this.refreshImports();
+            this.refreshMods();
 
             /* 首次使用引导（不传尺寸，面板按内容自适应高度） */
             if (!BBSAISettings.uiGuideSeen.get())
@@ -151,61 +170,324 @@ public class UIAIToolsPanel extends UIDashboardPanel
     }
 
     /**
-     * 构建顶部切换图标
+     * 构建折叠区块（统一标题/折叠记忆/默认展开状态）
      */
-    private UIIcon icon(Icon icon, String tooltipKey, String section)
+    private mchorse.bbs_mod.ui.framework.elements.UISection section(String id, String titleKey, boolean expanded)
     {
-        UIIcon button = new UIIcon(icon, (b) -> this.showSection(section));
+        mchorse.bbs_mod.ui.framework.elements.UISection section = new mchorse.bbs_mod.ui.framework.elements.UISection(L10n.lang(titleKey));
 
-        button.tooltip(L10n.lang(tooltipKey));
+        section.remember(this.folds, id, expanded);
+        this.sections.put(id, section);
 
-        return button;
+        return section;
     }
 
     /**
-     * 切换功能区块
+     * 展开并定位指定区块（键位快捷入口：import/video/storyboard）
      */
     public void showSection(String id)
     {
-        if (this.currentSection != null)
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.sections.get(id);
+
+        if (section != null)
         {
-            this.currentSection.removeFromParent();
-        }
-
-        this.currentSection = this.buildSection(id);
-
-        this.currentSection.relative(this.sectionHost).xy(0, 0).w(1F).h(1F);
-        this.sectionHost.add(this.currentSection);
-    }
-
-    /**
-     * 构建指定区块
-     */
-    private UIElement buildSection(String id)
-    {
-        switch (id)
-        {
-            case "video": return this.buildVideoSection();
-            case "storyboard": return this.buildStoryboardSection();
-            case "settings": return this.buildSettingsSection();
-            case "ik": return this.buildIKSection();
-            case "model": return this.buildModelSection();
-            case "interface": return this.buildInterfaceSection();
-            default: return this.buildImportSection();
+            section.setExpanded(true);
         }
     }
 
     /* ====================================================================
-     * 区块一：导入管理
+     * 区块：AI 设置
      * ==================================================================== */
 
-    private UIElement buildImportSection()
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildSettingsSection()
     {
-        UIElement section = new UIElement();
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("settings", "bbs_ai.panel.tab.settings", true);
+        AIConfig config = AIServiceManager.get().getConfig();
+
+        this.providerCirculate = new UICirculate((c) -> this.applyProvider(c.getValue()));
+
+        for (AIConfig.Provider provider : AIConfig.Provider.values())
+        {
+            this.providerCirculate.addLabel(IKey.constant(provider.title));
+        }
+
+        this.providerCirculate.setValue(config.getProvider().ordinal());
+
+        /* API Key（掩码 + 显示切换） */
+        this.apiKeyBox = new UITextbox(4096, (t) -> this.pushConfig());
+        this.apiKeyBox.setText(this.showApiKey ? config.getApiKey() : this.maskKey(config.getApiKey()));
+
+        UIIcon show = new UIIcon(this.showApiKey ? Icons.INVISIBLE : Icons.VISIBLE, (b) -> this.toggleShowKey());
+        show.tooltip(IKey.constant("显示/隐藏 API Key"));
+
+        this.baseUrlBox = new UITextbox(2048, (t) -> this.pushConfig());
+        this.baseUrlBox.setText(config.getBaseUrl());
+
+        this.modelBox = new UITextbox(512, (t) -> this.pushConfig());
+        this.modelBox.setText(config.getModel());
+
+        UIButton test = new UIButton(L10n.lang("bbs_ai.panel.settings.test"), (b) -> this.testConnection());
+
+        this.testResult = UI.label(IKey.constant(" "), 14, Colors.GRAY);
+
+        section.fields.add(
+            this.providerCirculate,
+            UI.labelRow(IKey.constant("API Key"), this.apiKeyBox),
+            show,
+            UI.labelRow(IKey.constant("Base URL"), this.baseUrlBox),
+            UI.labelRow(IKey.constant("模型"), this.modelBox),
+            test,
+            this.testResult
+        );
+
+        return section;
+    }
+
+    /**
+     * 把面板输入写回 AI 配置（加密持久化）
+     */
+    private void pushConfig()
+    {
+        AIConfig config = AIServiceManager.get().getConfig();
+        String key = this.apiKeyBox.getText();
+
+        /* 掩码状态下不覆盖真实 Key */
+        if (!this.showApiKey && key.contains("•"))
+        {
+            key = config.getApiKey();
+        }
+
+        config.setApiKey(key);
+        config.setBaseUrl(this.baseUrlBox.getText().trim());
+        config.setModel(this.modelBox.getText().trim());
+
+        AIServiceManager.get().updateConfig(config);
+    }
+
+    /**
+     * 应用厂商预设
+     */
+    private void applyProvider(int index)
+    {
+        AIConfig.Provider provider = AIConfig.Provider.values()[Math.max(0, Math.min(AIConfig.Provider.values().length - 1, index))];
+        AIConfig config = AIServiceManager.get().getConfig();
+
+        config.applyProvider(provider);
+        AIServiceManager.get().updateConfig(config);
+
+        if (this.baseUrlBox != null)
+        {
+            this.baseUrlBox.setText(config.getBaseUrl());
+            this.modelBox.setText(config.getModel());
+        }
+    }
+
+    /**
+     * 显示/隐藏 API Key
+     */
+    private void toggleShowKey()
+    {
+        AIConfig config = AIServiceManager.get().getConfig();
+
+        this.showApiKey = !this.showApiKey;
+
+        if (this.showApiKey)
+        {
+            this.apiKeyBox.setText(config.getApiKey());
+        }
+        else
+        {
+            String current = this.apiKeyBox.getText();
+
+            if (!current.contains("•"))
+            {
+                this.pushConfig();
+            }
+
+            this.apiKeyBox.setText(this.maskKey(config.getApiKey()));
+        }
+    }
+
+    /**
+     * 掩码 API Key
+     */
+    private String maskKey(String key)
+    {
+        if (key == null || key.isEmpty())
+        {
+            return "";
+        }
+
+        int visible = Math.min(4, key.length());
+
+        return key.substring(0, visible) + "••••••••";
+    }
+
+    /**
+     * 测试连接
+     */
+    private void testConnection()
+    {
+        this.testResult.label = IKey.constant("测试中...");
+        this.testResult.color(Colors.GRAY);
+
+        AIServiceManager.get().testConnectionAsync(
+            (ok) -> this.testResult.label = IKey.constant("√ 连接成功"),
+            (APIException error) -> this.testResult.label = IKey.constant("X " + error.getUserMessage())
+        );
+    }
+
+    /* ====================================================================
+     * 区块：分镜生成
+     * ==================================================================== */
+
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildStoryboardSection()
+    {
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("storyboard", "bbs_ai.panel.tab.storyboard", false);
+
+        /* 动画生成类功能已统一迁移到 AI 编辑器（专门的生成界面） */
+        this.storyboardHint = UI.label(L10n.lang("bbs_ai.panel.storyboard.moved"), 14, Colors.GRAY);
+
+        UIButton openEditor = new UIButton(L10n.lang("bbs_ai.panel.storyboard.open_editor"), (b) -> this.openAIEditor());
+
+        section.fields.add(
+            this.storyboardHint,
+            openEditor
+        );
+
+        return section;
+    }
+
+    /**
+     * 切换到 AI 编辑器面板（动画生成统一入口）
+     */
+    private void openAIEditor()
+    {
+        mchorse.bbs_ai.ui.editor.UIAIEditorPanel editor = this.dashboard.getPanel(mchorse.bbs_ai.ui.editor.UIAIEditorPanel.class);
+
+        if (editor != null)
+        {
+            this.dashboard.setPanel(editor);
+        }
+    }
+
+    /* ====================================================================
+     * 区块：视频识别
+     * ==================================================================== */
+
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildVideoSection()
+    {
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("video", "bbs_ai.panel.tab.video", false);
+
+        this.videoPath = new UITextbox(4096, (t) -> {});
+        this.videoPath.placeholder(L10n.lang("bbs_ai.panel.video.path"));
+
+        this.mirrorToggle = new UIToggle(L10n.lang("bbs_ai.panel.video.mirror"), false, (b) -> {});
+
+        UIButton start = new UIButton(L10n.lang("bbs_ai.panel.video.start"), (b) -> this.startRecognition());
+
+        /* 本地组件手动检查入口（错过进世界弹窗的用户从这里补装） */
+        UIButton components = new UIButton(L10n.lang("bbs_ai.panel.video.components"), (b) -> this.openComponentsPanel());
+
+        this.recognizeProgress = UI.label(L10n.lang("bbs_ai.panel.video.hint"), 14, Colors.GRAY);
+
+        section.fields.add(
+            UI.labelRow(IKey.constant("视频路径"), this.videoPath),
+            this.mirrorToggle,
+            start,
+            components,
+            this.recognizeProgress
+        );
+
+        return section;
+    }
+
+    /**
+     * 手动检查本地组件：后台探测缺失后在当前界面弹出安装面板
+     */
+    private void openComponentsPanel()
+    {
+        Thread thread = new Thread(() ->
+        {
+            java.util.List<mchorse.bbs_ai.core.LocalComponentsDownloader.Component> missing =
+                mchorse.bbs_ai.core.LocalComponentsDownloader.findMissing();
+
+            net.minecraft.client.MinecraftClient.getInstance().execute(() ->
+            {
+                if (missing.isEmpty())
+                {
+                    this.getContext().notifyInfo(L10n.lang("bbs_ai.panel.components.all_ready"));
+
+                    return;
+                }
+
+                UIOverlay.addOverlay(
+                    this.getContext(),
+                    new mchorse.bbs_ai.ui.panel.UIComponentsSetupPanel(missing),
+                    380,
+                    260
+                );
+            });
+        }, "BBS AI 组件检测");
+
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    /**
+     * 启动识别流水线
+     */
+    private void startRecognition()
+    {
+        String path = this.videoPath.getText().trim();
+
+        if (path.isEmpty())
+        {
+            this.notify("请先填写视频文件路径");
+
+            return;
+        }
+
+        File video = new File(path);
+
+        if (!VideoFrameExtractor.isSupportedVideo(video))
+        {
+            this.notify("视频不存在或格式不支持");
+
+            return;
+        }
+
+        if (this.pipeline.isRunning())
+        {
+            this.notify("识别任务进行中，请稍候");
+
+            return;
+        }
+
+        this.recognizeProgress.label = IKey.constant("识别中... 0%");
+
+        this.pipeline.start(video,
+            BBSAISettings.motionSampleRate.get(),
+            this.mirrorToggle.getValue(),
+            "",
+            this.getSelectedReplayId(),
+            (p) -> this.recognizeProgress.label = IKey.constant(String.format("识别中... %d%%", (int) (p * 100))),
+            (file) -> this.recognizeProgress.label = IKey.constant("完成！输出：" + file.getName()),
+            (error) -> this.recognizeProgress.label = IKey.constant("失败：" + error)
+        );
+    }
+
+    /* ====================================================================
+     * 区块：导入管理
+     * ==================================================================== */
+
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildImportSection()
+    {
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("import", "bbs_ai.panel.tab.import", false);
 
         this.importList = new UIStringList((l) -> this.updateImportInfo());
-        this.importList.relative(section).xy(0, 0).w(1F).h(1F, -60);
         this.importList.background();
+        this.importList.h(100);
 
         UIButton refresh = new UIButton(L10n.lang("bbs_ai.panel.import.refresh"), (b) ->
         {
@@ -216,16 +498,13 @@ public class UIAIToolsPanel extends UIDashboardPanel
         UIButton preview = new UIButton(L10n.lang("bbs_ai.panel.import.preview"), (b) -> this.previewSelectedImport());
         UIButton bake = new UIButton(L10n.lang("bbs_ai.panel.import.bake"), (b) -> this.bakeSelectedImport());
 
-        UIElement buttons = UI.row(4, refresh, preview, bake);
-
-        buttons.relative(section).y(1F, -56).w(1F).h(22);
-
         this.importInfo = UI.label(L10n.lang("bbs_ai.panel.import.empty"), 14, Colors.GRAY);
-        this.importInfo.relative(section).x(6).y(1F, -30).w(1F, -12);
 
-        section.add(this.importList, buttons, this.importInfo);
-
-        this.refreshImports();
+        section.fields.add(
+            this.importList,
+            UI.row(4, refresh, preview, bake),
+            this.importInfo
+        );
 
         return section;
     }
@@ -335,415 +614,54 @@ public class UIAIToolsPanel extends UIDashboardPanel
     }
 
     /* ====================================================================
-     * 区块二：视频识别
+     * 区块：人物模型
      * ==================================================================== */
 
-    private UIElement buildVideoSection()
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildModelSection()
     {
-        UIElement section = new UIElement();
-        int y = 8;
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("model", "bbs_ai.panel.tab.model", false);
 
-        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.video.title"), 14, 0xAAAAAA);
-
-        titleLabel.relative(section).xy(8, y);
-        section.add(titleLabel);
-        y += 22;
-
-        this.videoPath = new UITextbox(4096, (t) ->
-        {});
-
-        this.videoPath.relative(section).xy(8, y).w(1F, -16).h(20);
-        this.videoPath.placeholder(L10n.lang("bbs_ai.panel.video.path"));
-        section.add(this.videoPath);
-        y += 28;
-
-        this.mirrorToggle = new UIToggle(L10n.lang("bbs_ai.panel.video.mirror"), false, (b) ->
-        {});
-
-        this.mirrorToggle.relative(section).xy(8, y).w(1F, -16).h(18);
-        section.add(this.mirrorToggle);
-        y += 26;
-
-        UIButton start = new UIButton(L10n.lang("bbs_ai.panel.video.start"), (b) -> this.startRecognition());
-
-        start.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(start);
-        y += 28;
-
-        /* 本地组件手动检查入口（错过进世界弹窗的用户从这里补装） */
-        UIButton components = new UIButton(L10n.lang("bbs_ai.panel.video.components"), (b) -> this.openComponentsPanel());
-
-        components.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(components);
-        y += 30;
-
-        this.recognizeProgress = UI.label(L10n.lang("bbs_ai.panel.video.hint"), 14, Colors.GRAY);
-        this.recognizeProgress.relative(section).xy(8, y).w(1F, -16);
-        section.add(this.recognizeProgress);
-
-        return section;
-    }
-
-    /**
-     * 手动检查本地组件：后台探测缺失后在当前界面弹出安装面板
-     */
-    private void openComponentsPanel()
-    {
-        Thread thread = new Thread(() ->
+        /* 人物模型导出/浏览器/映射已并入「人物模型编辑页」动作栏 AI 按钮，此处为快捷跳转 */
+        UIButton openEditor = new UIButton(L10n.lang("bbs_ai.panel.model.open_editor"), (b) ->
         {
-            java.util.List<mchorse.bbs_ai.core.LocalComponentsDownloader.Component> missing =
-                mchorse.bbs_ai.core.LocalComponentsDownloader.findMissing();
+            mchorse.bbs_mod.ui.model_editor.UIModelEditorPanel panel = this.dashboard.getPanel(mchorse.bbs_mod.ui.model_editor.UIModelEditorPanel.class);
 
-            net.minecraft.client.MinecraftClient.getInstance().execute(() ->
+            if (panel != null)
             {
-                if (missing.isEmpty())
-                {
-                    this.getContext().notifyInfo(L10n.lang("bbs_ai.panel.components.all_ready"));
-
-                    return;
-                }
-
-                UIOverlay.addOverlay(
-                    this.getContext(),
-                    new mchorse.bbs_ai.ui.panel.UIComponentsSetupPanel(missing),
-                    380,
-                    260
-                );
-            });
-        }, "BBS AI 组件检测");
-
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-    /**
-     * 启动识别流水线
-     */
-    private void startRecognition()    {
-        String path = this.videoPath.getText().trim();
-
-        if (path.isEmpty())
-        {
-            this.notify("请先填写视频文件路径");
-
-            return;
-        }
-
-        File video = new File(path);
-
-        if (!VideoFrameExtractor.isSupportedVideo(video))
-        {
-            this.notify("视频不存在或格式不支持");
-
-            return;
-        }
-
-        if (this.pipeline.isRunning())
-        {
-            this.notify("识别任务进行中，请稍候");
-
-            return;
-        }
-
-        this.recognizeProgress.label = IKey.constant("识别中... 0%");
-
-        this.pipeline.start(video,
-            BBSAISettings.motionSampleRate.get(),
-            this.mirrorToggle.getValue(),
-            "",
-            this.getSelectedReplayId(),
-            (p) -> this.recognizeProgress.label = IKey.constant(String.format("识别中... %d%%", (int) (p * 100))),
-            (file) -> this.recognizeProgress.label = IKey.constant("完成！输出：" + file.getName()),
-            (error) -> this.recognizeProgress.label = IKey.constant("失败：" + error));
-    }
-
-    /* ====================================================================
-     * 区块三：分镜生成
-     * ==================================================================== */
-
-    private UIElement buildStoryboardSection()
-    {
-        UIElement section = new UIElement();
-        int y = 8;
-
-        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.storyboard.title"), 14, 0xAAAAAA);
-
-        titleLabel.relative(section).xy(8, y);
-        section.add(titleLabel);
-        y += 22;
-
-        this.storyboardPrompt = new UITextarea((t) ->
-        {});
-
-        this.storyboardPrompt.background().wrap();
-        this.storyboardPrompt.relative(section).xy(8, y).w(1F, -16).h(1F, -130);
-        section.add(this.storyboardPrompt);
-
-        UIButton generate = new UIButton(L10n.lang("bbs_ai.panel.storyboard.generate"), (b) -> this.generateStoryboard());
-
-        generate.relative(section).x(8).y(1F, -66).w(1F, -16).h(22);
-        section.add(generate);
-
-        this.storyboardStatus = UI.label(IKey.constant(""), 14, Colors.GRAY);
-        this.storyboardStatus.relative(section).x(8).y(1F, -38).w(1F, -16);
-        section.add(this.storyboardStatus);
-
-        return section;
-    }
-
-    /**
-     * 生成分镜
-     */
-    private void generateStoryboard()
-    {
-        String prompt = this.storyboardPrompt.getText().trim();
-
-        if (prompt.isEmpty())
-        {
-            this.notify("请先输入剧情描述");
-
-            return;
-        }
-
-        AIServiceManager service = AIServiceManager.get();
-
-        if (!service.isApiMode())
-        {
-            this.storyboardStatus.label = IKey.constant("需要 API 模式（AI 设置中配置）");
-
-            return;
-        }
-
-        this.storyboardStatus.label = IKey.constant("生成中...");
-
-        service.generateAsync(
-            StoryboardPromptBuilder.buildSystemPrompt(),
-            StoryboardPromptBuilder.buildUserPrompt(prompt, 10),
-            null,
-            (result) ->
-            {
-                try
-                {
-                    StoryboardScript script = StoryboardScript.fromJson(result);
-                    Film film = new StoryboardToFilmConverter().convert(script);
-                    String name = "ai_storyboard_" + System.currentTimeMillis() / 1000;
-
-                    BBSMod.getFilms().create(name, (MapType) film.toData());
-
-                    this.storyboardStatus.label = IKey.constant("已生成影片：" + name + "（" + script.shots.size() + " 镜头）");
-                }
-                catch (Exception e)
-                {
-                    this.storyboardStatus.label = IKey.constant("解析失败：" + e.getMessage());
-                }
-            },
-            (APIException error) -> this.storyboardStatus.label = IKey.constant(error.getUserMessage())
-        );
-    }
-
-    /* ====================================================================
-     * 区块四：AI 设置
-     * ==================================================================== */
-
-    private UIElement buildSettingsSection()
-    {
-        UIElement section = new UIElement();
-        int y = 8;
-
-        AIConfig config = AIServiceManager.get().getConfig();
-
-        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.settings.title"), 14, 0xAAAAAA);
-
-        titleLabel.relative(section).xy(8, y);
-        section.add(titleLabel);
-        y += 22;
-
-        this.providerCirculate = new UICirculate((c) -> this.applyProvider(c.getValue()));
-
-        for (AIConfig.Provider provider : AIConfig.Provider.values())
-        {
-            this.providerCirculate.addLabel(IKey.constant(provider.title));
-        }
-
-        this.providerCirculate.setValue(config.getProvider().ordinal());
-        this.providerCirculate.relative(section).xy(8, y).w(1F, -16).h(20);
-        section.add(this.providerCirculate);
-        y += 26;
-
-        /* API Key（掩码 + 显示切换） */
-        this.apiKeyBox = new UITextbox(4096, (t) -> this.pushConfig());
-
-        this.apiKeyBox.setText(this.showApiKey ? config.getApiKey() : this.maskKey(config.getApiKey()));
-        this.apiKeyBox.relative(section).xy(8, y).w(1F, -56).h(20);
-        section.add(this.apiKeyBox);
-
-        UIIcon show = new UIIcon(this.showApiKey ? Icons.INVISIBLE : Icons.VISIBLE, (b) -> this.toggleShowKey());
-
-        show.relative(section).x(1F, -46).y(y).w(20).h(20);
-        show.tooltip(IKey.constant("显示/隐藏 API Key"));
-        section.add(show);
-        y += 26;
-
-        this.baseUrlBox = new UITextbox(2048, (t) -> this.pushConfig());
-
-        this.baseUrlBox.setText(config.getBaseUrl());
-        this.baseUrlBox.relative(section).xy(8, y).w(1F, -16).h(20);
-        section.add(this.baseUrlBox);
-        y += 26;
-
-        this.modelBox = new UITextbox(512, (t) -> this.pushConfig());
-
-        this.modelBox.setText(config.getModel());
-        this.modelBox.relative(section).xy(8, y).w(1F, -16).h(20);
-        section.add(this.modelBox);
-        y += 28;
-
-        UIButton test = new UIButton(L10n.lang("bbs_ai.panel.settings.test"), (b) -> this.testConnection());
-
-        test.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(test);
-        y += 30;
-
-        this.testResult = UI.label(IKey.constant(" "), 14, Colors.GRAY);
-        this.testResult.relative(section).xy(8, y).w(1F, -16);
-        section.add(this.testResult);
-
-        return section;
-    }
-
-    /**
-     * 把面板输入写回 AI 配置（加密持久化）
-     */
-    private void pushConfig()
-    {
-        AIConfig config = AIServiceManager.get().getConfig();
-        String key = this.apiKeyBox.getText();
-
-        /* 掩码状态下不覆盖真实 Key */
-        if (!this.showApiKey && key.contains("•"))
-        {
-            key = config.getApiKey();
-        }
-
-        config.setApiKey(key);
-        config.setBaseUrl(this.baseUrlBox.getText().trim());
-        config.setModel(this.modelBox.getText().trim());
-
-        AIServiceManager.get().updateConfig(config);
-    }
-
-    /**
-     * 应用厂商预设
-     */
-    private void applyProvider(int index)
-    {
-        AIConfig.Provider provider = AIConfig.Provider.values()[Math.max(0, Math.min(AIConfig.Provider.values().length - 1, index))];
-        AIConfig config = AIServiceManager.get().getConfig();
-
-        config.applyProvider(provider);
-        AIServiceManager.get().updateConfig(config);
-
-        if (this.baseUrlBox != null)
-        {
-            this.baseUrlBox.setText(config.getBaseUrl());
-            this.modelBox.setText(config.getModel());
-        }
-    }
-
-    /**
-     * 显示/隐藏 API Key
-     */
-    private void toggleShowKey()
-    {
-        AIConfig config = AIServiceManager.get().getConfig();
-
-        this.showApiKey = !this.showApiKey;
-
-        if (this.showApiKey)
-        {
-            this.apiKeyBox.setText(config.getApiKey());
-        }
-        else
-        {
-            String current = this.apiKeyBox.getText();
-
-            if (!current.contains("•"))
-            {
-                this.pushConfig();
+                this.dashboard.setPanel(panel);
             }
+        });
 
-            this.apiKeyBox.setText(this.maskKey(config.getApiKey()));
-        }
-    }
-
-    /**
-     * 掩码 API Key
-     */
-    private String maskKey(String key)
-    {
-        if (key == null || key.isEmpty())
-        {
-            return "";
-        }
-
-        int visible = Math.min(4, key.length());
-
-        return key.substring(0, visible) + "••••••••";
-    }
-
-    /**
-     * 测试连接
-     */
-    private void testConnection()
-    {
-        this.testResult.label = IKey.constant("测试中...");
-        this.testResult.color(Colors.GRAY);
-
-        AIServiceManager.get().testConnectionAsync(
-            (ok) -> this.testResult.label = IKey.constant("√ 连接成功"),
-            (APIException error) -> this.testResult.label = IKey.constant("X " + error.getUserMessage())
+        section.fields.add(
+            UI.label(L10n.lang("bbs_ai.panel.model.moved"), 14, Colors.GRAY),
+            openEditor
         );
+
+        return section;
     }
 
     /* ====================================================================
-     * 区块五：IK 调整
+     * 区块：IK 调整
      * ==================================================================== */
 
-    private UIElement buildIKSection()
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildIKSection()
     {
-        UIElement section = new UIElement();
-        int y = 8;
-
-        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.ik.title"), 14, 0xAAAAAA);
-
-        titleLabel.relative(section).xy(8, y);
-        section.add(titleLabel);
-        y += 22;
-
-        UILabel hint = UI.label(IKey.constant("拖拽黄色目标移动末端骨骼；蓝色点控制弯曲方向（Shift 调高度）"), 14, Colors.GRAY);
-        hint.relative(section).xy(8, y).w(1F, -16);
-        section.add(hint);
-        y += 24;
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("ik", "bbs_ai.panel.tab.ik", false);
 
         UIButton openPanel = new UIButton(IKey.constant("打开约束面板"), (b) ->
         {
             UIOverlay.addOverlay(this.getContext(), new BlenderIKSettingsPanel(this.ikComponent, this::solveIK), 300, 440);
         });
 
-        openPanel.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(openPanel);
-        y += 28;
-
         UIButton solve = new UIButton(IKey.constant("解算并预览"), (b) -> this.solveIK());
-
-        solve.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(solve);
-        y += 28;
-
         UIButton bake = new UIButton(IKey.constant("烘焙 IK 结果..."), (b) -> this.bakeSelectedImport());
 
-        bake.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(bake);
+        section.fields.add(
+            UI.label(IKey.constant("调整约束参数后点「解算并预览」，结果经预览系统确认后烘焙进角色关键帧"), 14, Colors.GRAY),
+            openPanel,
+            solve,
+            bake
+        );
 
         return section;
     }
@@ -778,95 +696,143 @@ public class UIAIToolsPanel extends UIDashboardPanel
     }
 
     /* ====================================================================
-     * 区块六：人物模型导出/导入
+     * 区块：Mod 兼容（自动识别环境）
      * ==================================================================== */
 
-    private UIElement buildModelSection()
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildModsSection()
     {
-        UIElement section = new UIElement();
-        int y = 8;
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("mods", "bbs_ai.panel.tab.mods", false);
 
-        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.model.title"), 14, 0xAAAAAA);
+        this.modsSummary = UI.label(IKey.constant(" "), 14, Colors.GRAY);
 
-        titleLabel.relative(section).xy(8, y);
-        section.add(titleLabel);
-        y += 22;
+        this.modsList = new UIStringList((l) -> this.updateModsInfo());
+        this.modsList.background();
+        this.modsList.h(100);
 
-        UILabel hint = UI.label(L10n.lang("bbs_ai.panel.model.hint"), 14, Colors.GRAY);
+        this.modsInfo = UI.label(L10n.lang("bbs_ai.panel.mods.empty"), 14, Colors.GRAY);
 
-        hint.relative(section).xy(8, y).w(1F, -16).h(28);
-        section.add(hint);
-        y += 34;
+        UIButton rescan = new UIButton(L10n.lang("bbs_ai.panel.mods.rescan"), (b) -> this.rescanMods());
+        UIButton exportReport = new UIButton(L10n.lang("bbs_ai.panel.mods.export"), (b) -> this.exportModsReport());
 
-        UILabel current = UI.label(IKey.constant(" "), 14, Colors.GRAY);
-
-        mchorse.bbs_mod.forms.forms.ModelForm modelForm = mchorse.bbs_ai.ui.model.ModelFormUI.resolveCurrentModelForm();
-
-        current.label = IKey.constant(modelForm == null
-            ? L10n.lang("bbs_ai.panel.model.no_form").get()
-            : L10n.lang("bbs_ai.panel.model.current").format(modelForm.model.get()).get());
-        current.relative(section).xy(8, y).w(1F, -16);
-        section.add(current);
-        y += 26;
-
-        UIButton export = new UIButton(L10n.lang("bbs_ai.panel.model.export"), (b) ->
-        {
-            UIOverlay.addOverlay(this.getContext(), new mchorse.bbs_ai.ui.model.ExportModelPanel(), 340, 300);
-        });
-
-        export.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(export);
-        y += 28;
-
-        UIButton browser = new UIButton(L10n.lang("bbs_ai.panel.model.browser"), (b) ->
-        {
-            UIOverlay.addOverlay(this.getContext(), new mchorse.bbs_ai.ui.model.ModelBrowserPanel(), 380, 340);
-        });
-
-        browser.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(browser);
-        y += 28;
-
-        UIButton mapping = new UIButton(L10n.lang("bbs_ai.panel.model.mapping"), (b) ->
-        {
-            mchorse.bbs_mod.forms.forms.ModelForm form = mchorse.bbs_ai.ui.model.ModelFormUI.resolveCurrentModelForm();
-
-            if (form == null)
-            {
-                this.statusBar.setExtraMessage(L10n.lang("bbs_ai.panel.model.mapping.no_form").get());
-
-                return;
-            }
-
-            UIOverlay.addOverlay(this.getContext(), new mchorse.bbs_ai.ui.model.UIBoneMappingPanel(form, null), 340, 320);
-        });
-
-        mapping.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(mapping);
-        y += 28;
-
-        UILabel path = UI.label(L10n.lang("bbs_ai.panel.model.export.path"), 14, 0x666666);
-
-        path.relative(section).xy(8, y).w(1F, -16);
-        section.add(path);
+        section.fields.add(
+            this.modsSummary,
+            this.modsList,
+            UI.row(4, rescan, exportReport),
+            this.modsInfo
+        );
 
         return section;
     }
 
+    /**
+     * 刷新 mod 列表（懒扫描：首次调用会补齐注册表统计）
+     */
+    private void refreshMods()
+    {
+        if (this.modsList == null)
+        {
+            return;
+        }
+
+        try
+        {
+            this.modInfos = new ArrayList<>(ModCompatScanner.get().getMods());
+            this.modsSummary.label = IKey.constant(ModCompatScanner.get().summaryLine());
+
+            this.modsList.clear();
+
+            for (ModInfo info : this.modInfos)
+            {
+                this.modsList.add(info.toListLabel());
+            }
+
+            this.modsList.setIndex(-1);
+        }
+        catch (Exception e)
+        {
+            this.modsSummary.label = IKey.constant("Mod 扫描失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 重新扫描（清除缓存后全量重建）
+     */
+    private void rescanMods()
+    {
+        ModCompatScanner.get().rescan();
+        AIContextService.get().invalidate();
+        this.refreshMods();
+        this.notify("Mod 环境已重新扫描");
+    }
+
+    /**
+     * 导出 mods_report.json（外部工具链 / AI 共享）
+     */
+    private void exportModsReport()
+    {
+        File report = ModCompatScanner.get().saveReport();
+
+        this.notify(report != null
+            ? "已导出：" + report.getAbsolutePath()
+            : "导出失败（详见日志）");
+    }
+
+    /**
+     * 更新选中 mod 的详细信息（知识卡片 + 统计 + 适配器说明）
+     */
+    private void updateModsInfo()
+    {
+        if (this.modsInfo == null)
+        {
+            return;
+        }
+
+        int index = this.modsList == null ? -1 : this.modsList.getIndex();
+        ModInfo info = index >= 0 && index < this.modInfos.size() ? this.modInfos.get(index) : null;
+
+        if (info == null)
+        {
+            this.modsInfo.label = L10n.lang("bbs_ai.panel.mods.empty");
+
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
+
+        if (info.knowledge != null)
+        {
+            builder.append(info.knowledge.summary).append(" 拍摄建议：").append(info.knowledge.aiHint);
+        }
+        else
+        {
+            builder.append("未收录 mod（").append(info.category.title).append("）");
+
+            if (!info.authors.isEmpty())
+            {
+                builder.append(" 作者：").append(info.authors);
+            }
+        }
+
+        if (info.items >= 0 || info.blocks >= 0 || info.entities >= 0)
+        {
+            builder.append(String.format(" · 物品 %d / 方块 %d / 实体 %d", Math.max(0, info.items), Math.max(0, info.blocks), Math.max(0, info.entities)));
+        }
+
+        for (String note : info.adapterNotes)
+        {
+            builder.append("\n· ").append(note);
+        }
+
+        this.modsInfo.label = IKey.constant(builder.toString());
+    }
+
     /* ====================================================================
-     * 区块七：界面
+     * 区块：界面
      * ==================================================================== */
 
-    private UIElement buildInterfaceSection()
+    private mchorse.bbs_mod.ui.framework.elements.UISection buildInterfaceSection()
     {
-        UIElement section = new UIElement();
-        int y = 8;
-
-        UILabel titleLabel = UI.label(L10n.lang("bbs_ai.panel.interface.title"), 14, 0xAAAAAA);
-
-        titleLabel.relative(section).xy(8, y);
-        section.add(titleLabel);
-        y += 22;
+        mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("interface", "bbs_ai.panel.tab.interface", false);
 
         this.themeCirculate = new UICirculate((c) -> ThemeManager.get().setTheme(UITheme.byIndex(c.getValue())));
 
@@ -876,21 +842,15 @@ public class UIAIToolsPanel extends UIDashboardPanel
         }
 
         this.themeCirculate.setValue(ThemeManager.get().getTheme().ordinal());
-        this.themeCirculate.relative(section).xy(8, y).w(1F, -16).h(20);
-        section.add(this.themeCirculate);
-        y += 26;
 
-        this.languageCirculate = new UICirculate((c) -> LanguageManager.get().setLanguage(mchorse.bbs_ai.ui.language.UILanguage.byIndex(c.getValue())));
+        this.languageCirculate = new UICirculate((c) -> LanguageManager.get().setLanguage(UILanguage.byIndex(c.getValue())));
 
-        for (mchorse.bbs_ai.ui.language.UILanguage language : mchorse.bbs_ai.ui.language.UILanguage.values())
+        for (UILanguage language : UILanguage.values())
         {
             this.languageCirculate.addLabel(IKey.constant(language.title));
         }
 
         this.languageCirculate.setValue(LanguageManager.get().getLanguage().ordinal());
-        this.languageCirculate.relative(section).xy(8, y).w(1F, -16).h(20);
-        section.add(this.languageCirculate);
-        y += 26;
 
         this.modeCirculate = new UICirculate((c) -> BBSAISettings.uiOperationMode.set(c.getValue()));
 
@@ -898,23 +858,21 @@ public class UIAIToolsPanel extends UIDashboardPanel
         this.modeCirculate.addLabel(IKey.constant("Blender 风格"));
         this.modeCirculate.addLabel(IKey.constant("Mine-imator 风格"));
         this.modeCirculate.setValue(BBSAISettings.uiOperationMode.get());
-        this.modeCirculate.relative(section).xy(8, y).w(1F, -16).h(20);
-        section.add(this.modeCirculate);
-        y += 30;
 
         UIButton hotkeys = new UIButton(IKey.constant("热键设置（F1 速查表）"), (b) -> this.openHotkeySettings());
-
-        hotkeys.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(hotkeys);
-        y += 28;
 
         UIButton guide = new UIButton(IKey.constant("重看新手引导"), (b) ->
         {
             UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide());
         });
 
-        guide.relative(section).xy(8, y).w(1F, -16).h(22);
-        section.add(guide);
+        section.fields.add(
+            UI.labelRow(IKey.constant("主题"), this.themeCirculate),
+            UI.labelRow(IKey.constant("语言"), this.languageCirculate),
+            UI.labelRow(IKey.constant("操作模式"), this.modeCirculate),
+            hotkeys,
+            guide
+        );
 
         return section;
     }
@@ -936,39 +894,19 @@ public class UIAIToolsPanel extends UIDashboardPanel
     {
         super.render(context);
 
-        /* IK Gizmo（固定于面板中心附近） */
-        this.gizmo.updateScreens(
-            this.area.mx() + 60,
-            this.area.my() - 40,
-            this.area.mx() + 60,
-            this.area.my() - 100
-        );
-
-        this.gizmo.render(context);
-
-        /* 预览 HUD 覆盖层 */
-        new PreviewRenderer().renderOverlay(context, this.area, 0.0F);
+        /* 预览 HUD 覆盖层（复用实例，复杂场景下减少每帧分配） */
+        this.previewRenderer.renderOverlay(context, this.area, 0.0F);
     }
 
     @Override
     public boolean subMouseClicked(UIContext context)
     {
-        if (this.gizmo.mousePressed(context))
-        {
-            return true;
-        }
-
         return super.subMouseClicked(context);
     }
 
     @Override
     public boolean subMouseReleased(UIContext context)
     {
-        if (this.gizmo.mouseReleased(context))
-        {
-            return true;
-        }
-
         return super.subMouseReleased(context);
     }
 
