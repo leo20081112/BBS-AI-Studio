@@ -1,0 +1,14 @@
+# BBS AI Studio 外部工具链 —— 打包（PyInstaller）依赖清单
+# Python 3.10，用于构建 Windows exe：pip install -r requirements-build.txt
+#
+# 注意：打包版不内置 mediapipe（与 PyInstaller 冻结环境不兼容），
+# exe 内使用 rtmpose 后端（onnxruntime），用户需提供 RTMPose 的 ONNX 模型
+numpy==1.26.4
+requests
+cryptography
+opencv-python-headless>=4.9
+# 钉 1.17.1：与 Java 端嵌套的 onnxruntime 版本一致，且对旧版 MSVC 运行时容忍度更高
+onnxruntime==1.17.1
+gradio>=4.44,<5
+huggingface_hub>=0.30,<1.0
+pyinstaller>=6.10

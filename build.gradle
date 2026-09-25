@@ -69,6 +69,13 @@ tasks.named('runClient', JavaExec) {
 }
 
 dependencies {
+	// BBS AI Studio：AI 网络请求（OkHttp，纯 Java 版本避免引入 Kotlin 运行时）
+	include(implementation("com.squareup.okhttp3:okhttp:3.14.9"))
+	include(implementation("com.squareup.okio:okio:1.17.2"))
+
+	// BBS AI Studio：ONNX Runtime，用于游戏内本地姿态估计推理
+	include(implementation("com.microsoft.onnxruntime:onnxruntime:1.17.1"))
+
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
@@ -272,6 +279,12 @@ def collectApiSignatures = {
 	}
 
 	return builder.toString()
+}
+
+// 主源集与 client 源集在同一个 mchorse.bbs_ai 包下各有一份 package-info.java，
+// sourcesJar 合并源码时按路径视为重复——显式保留两份。
+tasks.matching { it.name == 'sourcesJar' }.configureEach {
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.register("apiDump") {
