@@ -80,7 +80,7 @@ public class AISettingsOverlayPanel extends UIOverlayPanel
         this.apiKeyBox.setText(this.showApiKey ? config.getApiKey() : this.maskKey(config.getApiKey()));
 
         UIIcon show = new UIIcon(Icons.INVISIBLE, (b) -> this.toggleShowKey());
-        show.tooltip(IKey.constant("显示/隐藏 API Key"));
+        show.tooltip(L10n.lang("bbs_ai.str.toolsPanel.1"));
 
         this.baseUrlBox = new UITextbox(2048, (t) -> this.pushConfig());
         this.baseUrlBox.setText(config.getBaseUrl());
@@ -97,7 +97,7 @@ public class AISettingsOverlayPanel extends UIOverlayPanel
             UI.labelRow(IKey.constant("API Key"), this.apiKeyBox),
             show,
             UI.labelRow(IKey.constant("Base URL"), this.baseUrlBox),
-            UI.labelRow(IKey.constant("模型"), this.modelBox),
+            UI.labelRow(L10n.lang("bbs_ai.str.toolsPanel.2"), this.modelBox),
             test,
             this.testResult
         );
@@ -259,11 +259,11 @@ public class AISettingsOverlayPanel extends UIOverlayPanel
 
     private void testConnection()
     {
-        this.testResult.label = IKey.constant("测试中...");
+        this.testResult.label = L10n.lang("bbs_ai.str.toolsPanel.3");
         this.testResult.color(Colors.GRAY);
 
         AIServiceManager.get().testConnectionAsync(
-            (ok) -> this.testResult.label = IKey.constant("√ 连接成功"),
+            (ok) -> this.testResult.label = L10n.lang("bbs_ai.str.toolsPanel.4"),
             (APIException error) -> this.testResult.label = IKey.constant("X " + error.getUserMessage())
         );
     }

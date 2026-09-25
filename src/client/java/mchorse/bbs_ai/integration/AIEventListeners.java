@@ -6,6 +6,7 @@ import mchorse.bbs_mod.api.Subscribe;
 import mchorse.bbs_mod.api.client.events.FormPoseEvents;
 import mchorse.bbs_mod.api.client.events.RegisterFilmToolsEvent;
 import mchorse.bbs_mod.api.client.events.RegisterReplayActionsEvent;
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate;
@@ -67,7 +68,7 @@ public class AIEventListeners
 
             column.column(3).stretch().vertical().height(20).padding(2);
 
-            UILabel title = new UILabel(IKey.constant("AI 锚点跟随（手/脚）"));
+            UILabel title = new UILabel(L10n.lang("bbs_ai.str.listeners.1"));
 
             title.color(0xAAAAAA);
             column.add(title);
@@ -77,9 +78,9 @@ public class AIEventListeners
                 AIAnchorConfig.COMPONENT.constraint.anchorMode = c.getValue();
             });
 
-            mode.addLabel(IKey.constant("无"));
-            mode.addLabel(IKey.constant("脚部贴地"));
-            mode.addLabel(IKey.constant("手部抓附"));
+            mode.addLabel(L10n.lang("bbs_ai.str.ikPanel.7"));
+            mode.addLabel(L10n.lang("bbs_ai.str.ikPanel.8"));
+            mode.addLabel(L10n.lang("bbs_ai.str.ikPanel.9"));
             mode.setValue(AIAnchorConfig.COMPONENT.constraint.anchorMode);
             column.add(mode);
 
@@ -89,7 +90,7 @@ public class AIEventListeners
             });
 
             strength.limit(0.0F, 1.0F).setValue(AIAnchorConfig.COMPONENT.constraint.anchorStrength);
-            column.add(UI.labelRow(IKey.constant("强度"), strength));
+            column.add(UI.labelRow(L10n.lang("bbs_ai.str.listeners.2"), strength));
 
             UITrackpad release = new UITrackpad((v) ->
             {
@@ -97,7 +98,7 @@ public class AIEventListeners
             });
 
             release.limit(1.0F, 90.0F).setValue(AIAnchorConfig.COMPONENT.constraint.anchorReleaseAngle);
-            column.add(UI.labelRow(IKey.constant("释放角度"), release));
+            column.add(UI.labelRow(L10n.lang("bbs_ai.str.listeners.3"), release));
 
             return column;
         });

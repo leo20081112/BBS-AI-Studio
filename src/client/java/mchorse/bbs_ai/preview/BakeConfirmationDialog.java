@@ -4,6 +4,7 @@ import java.util.List;
 
 import mchorse.bbs_ai.format.MotionFrame;
 import mchorse.bbs_ai.motion.SkeletonMapper;
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIButton;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
@@ -25,7 +26,7 @@ public class BakeConfirmationDialog extends UIOverlayPanel
 {
     public BakeConfirmationDialog(PreviewContext context, PreviewTrack track)
     {
-        super(IKey.constant("确认烘焙预览数据"));
+        super(L10n.lang("bbs_ai.str.bakeDialog.1"));
 
         int frames = track.getFrameCount();
         List<String> bones = track.getAffectedBones();
@@ -35,19 +36,19 @@ public class BakeConfirmationDialog extends UIOverlayPanel
 
         String[] lines = this.buildSummaryLines(frames, bones, rangeStart, rangeEnd, conflicts);
 
-        UIButton overwrite = new UIButton(IKey.constant("覆盖现有"), (b) ->
+        UIButton overwrite = new UIButton(L10n.lang("bbs_ai.str.bakeDialog.2"), (b) ->
         {
             this.close();
             PreviewSystem.get().bake(BakeMode.OVERWRITE);
         });
 
-        UIButton blend = new UIButton(IKey.constant("插入 Blend"), (b) ->
+        UIButton blend = new UIButton(L10n.lang("bbs_ai.str.bakeDialog.3"), (b) ->
         {
             this.close();
             PreviewSystem.get().bake(BakeMode.INSERT_BLEND);
         });
 
-        UIButton cancel = new UIButton(IKey.constant("取消"), (b) ->
+        UIButton cancel = new UIButton(L10n.lang("bbs_ai.str.bakeDialog.4"), (b) ->
         {
             this.close();
             PreviewSystem.get().discard();

@@ -19,6 +19,7 @@ import mchorse.bbs_ai.ui.theme.UITheme;
 import mchorse.bbs_ai.ui.panel.UIAIToolsPanel;
 import mchorse.bbs_ai.ui.theme.ThemeManager;
 import mchorse.bbs_mod.BBSMod;
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 
 /**
@@ -111,7 +112,7 @@ public class BBSAIClientIntegration
         });
 
         /* 2. 设置下拉项本地化标签【原版兼容】 */
-        BBSAISettings.aiMode.modes(IKey.constant("本地模式（ONNX 骨骼识别）"), IKey.constant("API 模式（云端大模型）"));
+        BBSAISettings.aiMode.modes(L10n.lang("bbs_ai.str.clientInteg.1"), L10n.lang("bbs_ai.str.clientInteg.2"));
         BBSAISettings.aiProvider.modes(
             IKey.constant(AIConfig.Provider.OPENAI.title),
             IKey.constant(AIConfig.Provider.CLAUDE.title),
@@ -126,16 +127,16 @@ public class BBSAIClientIntegration
         );
         BBSAISettings.uiLanguage.modes(
             IKey.constant("English"),
-            IKey.constant("简体中文"),
-            IKey.constant("繁體中文")
+            L10n.lang("bbs_ai.str.clientInteg.3"),
+            L10n.lang("bbs_ai.str.clientInteg.4")
         );
         BBSAISettings.uiOperationMode.modes(
-            IKey.constant("BBS 兼容操作"),
-            IKey.constant("Blender 风格"),
-            IKey.constant("Mine-imator 风格")
+            L10n.lang("bbs_ai.str.toolsPanel.11"),
+            L10n.lang("bbs_ai.str.toolsPanel.12"),
+            L10n.lang("bbs_ai.str.toolsPanel.13")
         );
-        BBSAISettings.motionPoseModel.modes(IKey.constant("YOLOv8-pose（17 点）"), IKey.constant("RTMPose（17 点，更精细）"));
-        BBSAISettings.ikMode.modes(IKey.constant("原生 IK"), IKey.constant("Blender 风格 IK"));
+        BBSAISettings.motionPoseModel.modes(L10n.lang("bbs_ai.str.clientInteg.5"), L10n.lang("bbs_ai.str.clientInteg.6"));
+        BBSAISettings.ikMode.modes(L10n.lang("bbs_ai.str.clientInteg.7"), L10n.lang("bbs_ai.str.clientInteg.8"));
 
         /* 3. 初始化客户端服务 */
         LanguageManager.initialize();
@@ -222,6 +223,14 @@ public class BBSAIClientIntegration
         {
             checkLocalComponents(client);
         });
+
+        /* 7b. bbs-fs 2.7 新体系接入：AI 锚定视口工具/角色属性控件/时间轴覆盖层/影片编辑监听
+         * （BBSFSCompat 版本守卫：2.5/2.6 树上这些事件类不存在，自动跳过） */
+        if (mchorse.bbs_ai.compat.BBSFSCompat.has27Api())
+        {
+            BBSMod.events.register(new mchorse.bbs_ai.integration.AIEventListeners());
+            mchorse.bbs_ai.ui.editor.AIFilmEvents.register();
+        }
 
         /* 8. 本地调试桥（127.0.0.1 截图/命令/日志，供 MCP 等外部工具自动化测试；-Dbbsai.bridge.port=0 关闭） */
         mchorse.bbs_ai.debug.BBSAIDebugBridge.get().start();

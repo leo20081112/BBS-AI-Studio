@@ -218,7 +218,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         this.apiKeyBox.setText(this.showApiKey ? config.getApiKey() : this.maskKey(config.getApiKey()));
 
         UIIcon show = new UIIcon(this.showApiKey ? Icons.INVISIBLE : Icons.VISIBLE, (b) -> this.toggleShowKey());
-        show.tooltip(IKey.constant("显示/隐藏 API Key"));
+        show.tooltip(L10n.lang("bbs_ai.str.toolsPanel.1"));
 
         this.baseUrlBox = new UITextbox(2048, (t) -> this.pushConfig());
         this.baseUrlBox.setText(config.getBaseUrl());
@@ -235,7 +235,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
             UI.labelRow(IKey.constant("API Key"), this.apiKeyBox),
             show,
             UI.labelRow(IKey.constant("Base URL"), this.baseUrlBox),
-            UI.labelRow(IKey.constant("模型"), this.modelBox),
+            UI.labelRow(L10n.lang("bbs_ai.str.toolsPanel.2"), this.modelBox),
             test,
             this.testResult
         );
@@ -328,11 +328,11 @@ public class UIAIToolsPanel extends UIDashboardPanel
      */
     private void testConnection()
     {
-        this.testResult.label = IKey.constant("测试中...");
+        this.testResult.label = L10n.lang("bbs_ai.str.toolsPanel.3");
         this.testResult.color(Colors.GRAY);
 
         AIServiceManager.get().testConnectionAsync(
-            (ok) -> this.testResult.label = IKey.constant("√ 连接成功"),
+            (ok) -> this.testResult.label = L10n.lang("bbs_ai.str.toolsPanel.4"),
             (APIException error) -> this.testResult.label = IKey.constant("X " + error.getUserMessage())
         );
     }
@@ -392,7 +392,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
         this.recognizeProgress = UI.label(L10n.lang("bbs_ai.panel.video.hint"), 14, Colors.GRAY);
 
         section.fields.add(
-            UI.labelRow(IKey.constant("视频路径"), this.videoPath),
+            UI.labelRow(L10n.lang("bbs_ai.str.toolsPanel.5"), this.videoPath),
             this.mirrorToggle,
             start,
             components,
@@ -464,7 +464,7 @@ public class UIAIToolsPanel extends UIDashboardPanel
             return;
         }
 
-        this.recognizeProgress.label = IKey.constant("识别中... 0%");
+        this.recognizeProgress.label = L10n.lang("bbs_ai.str.toolsPanel.6");
 
         this.pipeline.start(video,
             BBSAISettings.motionSampleRate.get(),
@@ -648,16 +648,16 @@ public class UIAIToolsPanel extends UIDashboardPanel
     {
         mchorse.bbs_mod.ui.framework.elements.UISection section = this.section("ik", "bbs_ai.panel.tab.ik", false);
 
-        UIButton openPanel = new UIButton(IKey.constant("打开约束面板"), (b) ->
+        UIButton openPanel = new UIButton(L10n.lang("bbs_ai.str.toolsPanel.7"), (b) ->
         {
             UIOverlay.addOverlay(this.getContext(), new BlenderIKSettingsPanel(this.ikComponent, this::solveIK), 300, 440);
         });
 
-        UIButton solve = new UIButton(IKey.constant("解算并预览"), (b) -> this.solveIK());
-        UIButton bake = new UIButton(IKey.constant("烘焙 IK 结果..."), (b) -> this.bakeSelectedImport());
+        UIButton solve = new UIButton(L10n.lang("bbs_ai.str.toolsPanel.8"), (b) -> this.solveIK());
+        UIButton bake = new UIButton(L10n.lang("bbs_ai.str.toolsPanel.9"), (b) -> this.bakeSelectedImport());
 
         section.fields.add(
-            UI.label(IKey.constant("调整约束参数后点「解算并预览」，结果经预览系统确认后烘焙进角色关键帧"), 14, Colors.GRAY),
+            UI.label(L10n.lang("bbs_ai.str.toolsPanel.10"), 14, Colors.GRAY),
             openPanel,
             solve,
             bake
@@ -854,22 +854,22 @@ public class UIAIToolsPanel extends UIDashboardPanel
 
         this.modeCirculate = new UICirculate((c) -> BBSAISettings.uiOperationMode.set(c.getValue()));
 
-        this.modeCirculate.addLabel(IKey.constant("BBS 兼容操作"));
-        this.modeCirculate.addLabel(IKey.constant("Blender 风格"));
-        this.modeCirculate.addLabel(IKey.constant("Mine-imator 风格"));
+        this.modeCirculate.addLabel(L10n.lang("bbs_ai.str.toolsPanel.11"));
+        this.modeCirculate.addLabel(L10n.lang("bbs_ai.str.toolsPanel.12"));
+        this.modeCirculate.addLabel(L10n.lang("bbs_ai.str.toolsPanel.13"));
         this.modeCirculate.setValue(BBSAISettings.uiOperationMode.get());
 
-        UIButton hotkeys = new UIButton(IKey.constant("热键设置（F1 速查表）"), (b) -> this.openHotkeySettings());
+        UIButton hotkeys = new UIButton(L10n.lang("bbs_ai.str.toolsPanel.14"), (b) -> this.openHotkeySettings());
 
-        UIButton guide = new UIButton(IKey.constant("重看新手引导"), (b) ->
+        UIButton guide = new UIButton(L10n.lang("bbs_ai.str.toolsPanel.15"), (b) ->
         {
             UIOverlay.addOverlay(this.getContext(), new FirstTimeGuide());
         });
 
         section.fields.add(
-            UI.labelRow(IKey.constant("主题"), this.themeCirculate),
-            UI.labelRow(IKey.constant("语言"), this.languageCirculate),
-            UI.labelRow(IKey.constant("操作模式"), this.modeCirculate),
+            UI.labelRow(L10n.lang("bbs_ai.str.toolsPanel.16"), this.themeCirculate),
+            UI.labelRow(L10n.lang("bbs_ai.str.toolsPanel.17"), this.languageCirculate),
+            UI.labelRow(L10n.lang("bbs_ai.str.toolsPanel.18"), this.modeCirculate),
             hotkeys,
             guide
         );

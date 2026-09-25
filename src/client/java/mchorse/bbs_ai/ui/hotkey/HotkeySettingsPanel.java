@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import org.lwjgl.glfw.GLFW;
 
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
@@ -64,11 +65,11 @@ public class HotkeySettingsPanel extends UIOverlayPanel
 
         if (!cheatSheetMode)
         {
-            UIButton resetOne = new UIButton(IKey.constant("重置所选"), (b) -> this.resetSelected());
+            UIButton resetOne = new UIButton(L10n.lang("bbs_ai.str.hotkeyPanel.1"), (b) -> this.resetSelected());
 
             resetOne.setEnabled(false);
 
-            UIButton resetAll = new UIButton(IKey.constant("全部恢复默认"), (b) ->
+            UIButton resetAll = new UIButton(L10n.lang("bbs_ai.str.hotkeyPanel.2"), (b) ->
             {
                 HotkeyRegistry.get().resetAll();
                 KeyMapConfig.save();
@@ -80,7 +81,7 @@ public class HotkeySettingsPanel extends UIOverlayPanel
                 KeyMapConfig.save();
             });
 
-            save.tooltip(IKey.constant("保存自定义热键"));
+            save.tooltip(L10n.lang("bbs_ai.str.hotkeyPanel.3"));
 
             controls.add(resetOne, resetAll, save);
         }

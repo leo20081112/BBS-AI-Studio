@@ -3,6 +3,7 @@ package mchorse.bbs_ai.ui.hotkey;
 import org.lwjgl.glfw.GLFW;
 
 import mchorse.bbs_ai.core.BBSAISettings;
+import mchorse.bbs_mod.l10n.L10n;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIButton;
@@ -46,9 +47,9 @@ public class FirstTimeGuide extends UIMessageOverlayPanel
 
     public FirstTimeGuide()
     {
-        super(IKey.constant("BBS AI Studio 快速入门"), IKey.EMPTY);
+        super(L10n.lang("bbs_ai.str.firstGuide.1"), IKey.EMPTY);
 
-        UIButton skip = new UIButton(IKey.constant("跳过引导"), (b) -> this.finish());
+        UIButton skip = new UIButton(L10n.lang("bbs_ai.str.firstGuide.2"), (b) -> this.finish());
 
         /* 沿用 UIConfirmOverlayPanel 的习惯：按钮挂在正文下方并由 bottom 计入面板高度 */
         skip.relative(this.content).x(0.5F).y(1F, -10).w(80).anchor(0.5F, 1F);

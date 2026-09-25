@@ -106,6 +106,12 @@ public class UIModelEditorPanel extends UIDataDashboardPanel<ModelConfig>
 
     private final ModelForm form = new ModelForm();
 
+    /** 【BBS AI Studio】 exposes the model under edit for the AI assistant context. */
+    public ModelForm getForm()
+    {
+        return this.form;
+    }
+
     /** The model id waiting for its instance to load (models load asynchronously). */
     private String pendingId;
 
