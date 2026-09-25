@@ -24,6 +24,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import mchorse.bbs_mod.BBSMod;
+import mchorse.bbs_mod.ui.dashboard.UIDashboard;
+import mchorse.bbs_mod.ui.dashboard.panels.UIDashboardPanel;
 
 /**
  * 本地调试桥（供外部工具 / MCP 服务器访问游戏）
@@ -447,6 +449,7 @@ public class BBSAIDebugBridge
      *
      * <p>支持字段（可组合，按序执行）：{@code close=true} 关闭当前界面；
      * {@code panel="ai_tools"} 打开 AI 工具面板（可带 {@code section}）；
+     * {@code panel="ai_editor"} 打开 AI 编辑器面板；{@code panel="ai_settings"} 打开 AI 设置界面；
      * {@code guide=true} 弹出首次引导；{@code settings=true} 弹出 BBS 设置。</p>
      */
     private void handleUi(HttpExchange exchange) throws IOException
@@ -473,6 +476,50 @@ public class BBSAIDebugBridge
                     client.setScreen(null);
                 }
 
+                String panelName = extractString(body, "panel");
+
+                if ("film".equals(panelName) || "model_editor".equals(panelName) || "morphing".equals(panelName))
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+                    UIDashboardPanel target = "film".equals(panelName)
+                        ? dashboard.getPanel(mchorse.bbs_mod.ui.film.UIFilmPanel.class)
+                        : "model_editor".equals(panelName)
+                            ? dashboard.getPanel(mchorse.bbs_mod.ui.model_editor.UIModelEditorPanel.class)
+                            : dashboard.getPanel(mchorse.bbs_mod.ui.morphing.UIMorphingPanel.class);
+
+                    if (target == null)
+                    {
+                        error[0] = "panel not found: " + panelName;
+
+                        return;
+                    }
+
+                    dashboard.setPanel(target);
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                }
+
+                if ("ik_panel".equals(extractString(body, "panel")))
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+                    mchorse.bbs_ai.ik.IKBoneChain chain = new mchorse.bbs_ai.ik.IKBoneChain("ik_check");
+                    mchorse.bbs_ai.ik.IKBone bone = new mchorse.bbs_ai.ik.IKBone("head");
+
+                    bone.setPositions(new org.joml.Vector3f(0.0F, 1.4F, 0.0F), new org.joml.Vector3f(0.0F, 1.9F, 0.0F));
+                    chain.addBone(bone);
+
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                        dashboard.context,
+                        new mchorse.bbs_ai.ik.BlenderIKSettingsPanel(
+                            new mchorse.bbs_ai.ik.BlenderIKComponent("ik_check", chain),
+                            () ->
+                            {}),
+                        320,
+                        640
+                    );
+                }
+
                 if ("ai_tools".equals(extractString(body, "panel")))
                 {
                     String section = extractString(body, "section");
@@ -494,6 +541,40 @@ public class BBSAIDebugBridge
                     /* bbs-fs 2.6 面板即标签页：先切换再打开屏幕，否则停留在原面板 */
                     dashboard.setPanel(panel);
                     mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                }
+
+                if ("ai_editor".equals(extractString(body, "panel")))
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+                    mchorse.bbs_ai.ui.editor.UIAIEditorPanel panel = dashboard.getPanel(mchorse.bbs_ai.ui.editor.UIAIEditorPanel.class);
+
+                    if (panel == null)
+                    {
+                        error[0] = "ai editor panel not found";
+
+                        return;
+                    }
+
+                    if (extractBool(body, "demo"))
+                    {
+                        panel.seedDemoForTesting();
+                    }
+
+                    dashboard.setPanel(panel);
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                }
+
+                if ("ai_settings".equals(extractString(body, "panel")))
+                {
+                    mchorse.bbs_mod.ui.dashboard.UIDashboard dashboard = mchorse.bbs_mod.BBSModClient.getDashboard();
+
+                    mchorse.bbs_mod.ui.framework.UIScreen.open(dashboard);
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                        dashboard.context,
+                        new mchorse.bbs_ai.ui.editor.AISettingsOverlayPanel(),
+                        420,
+                        440
+                    );
                 }
 
                 if (extractBool(body, "guide"))

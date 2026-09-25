@@ -219,6 +219,36 @@ public class UIModelEditorPanel extends UIDataDashboardPanel<ModelConfig>
             .action(this.historyIcon)
             .action(this.animationIcon);
 
+        /* 【BBS AI Studio】人物模型 AI 助手：模型编辑页专属动作（映射/导出/浏览器） */
+        this.actions().action(new UIIcon(Icons.MAZE, (b) ->
+        {
+            this.getContext().replaceContextMenu((menu) ->
+            {
+                menu.action(Icons.PROPERTIES, IKey.constant("骨骼映射（视频识别 → 模型骨骼）..."), () ->
+                {
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                        this.getContext(),
+                        new mchorse.bbs_ai.ui.model.UIBoneMappingPanel(this.form, null), 340, 320);
+                });
+                menu.action(Icons.DOWNLOAD, IKey.constant("导出当前模型为 .bbsm..."), () ->
+                {
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                        this.getContext(),
+                        new mchorse.bbs_ai.ui.model.ExportModelPanel(), 340, 300);
+                });
+                menu.action(Icons.FOLDER, IKey.constant("打开模型浏览器..."), () ->
+                {
+                    mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay.addOverlay(
+                        this.getContext(),
+                        new mchorse.bbs_ai.ui.model.ModelBrowserPanel(), 380, 340);
+                });
+                menu.action(Icons.MAZE, IKey.constant("打开 AI 工具面板（视频识别/导入管理）"), () ->
+                {
+                    mchorse.bbs_ai.integration.BBSAIClientIntegration.showSection("import");
+                });
+            });
+        }));
+
         this.mountLanding();
 
         this.add(new UIUndoKeys(this::undo, this::redo).full(this));

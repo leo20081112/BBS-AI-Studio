@@ -22,7 +22,7 @@ import java.util.List;
  * {@code config/bbs/ai_cache/models/} 目录）：
  * <ul>
  *   <li>YOLOv8-pose（17 关键点，COCO）：输出 [1, 56, N]，含 NMS 解码</li>
- *   <li>RTMPose（17 关键点，SimCC 表示）：输出 simcc_x [1,17,2W] 与 simcc_y [1,17,2H]</li>
+ *   <li>RTMPose（17 关键点，SimCC 表示）：输出 simcc_x [1,17,W/2] 与 simcc_y [1,17,H/2]</li>
  * </ul></p>
  *
  * <p>模型文件缺失时抛出带清晰指引的 {@link APIException}，绝不崩溃。</p>
@@ -396,13 +396,22 @@ public class LocalPoseEstimator implements AutoCloseable
 
     /**
      * 解码 RTMPose 的 SimCC 输出：
-     * simcc_x [1,17,2W] 与 simcc_y [1,17,2H]，对每通道取 argmax / 2 得坐标
+     * simcc_x [1,17,W/2] 与 simcc_y [1,17,H/2]，对每通道取 argmax / 2 得坐标
      */
     private PoseKeypoints decodeSimCC(OrtSession.Result result, int frameWidth, int frameHeight, int sourceFrame, float minConfidence) throws APIException, OrtException
     {
-        /* 按名字优先取输出（标准 MMPose 导出名为 simcc_x / simcc_y），再按约定顺序兜底 */
-        float[][] simccX = this.simccMatrix(this.outputValue(result, "simcc_x", 0));
-        float[][] simccY = this.simccMatrix(this.outputValue(result, "simcc_y", 1));
+        /* RTMPose 导出约定：输出顺序为 simcc_x [1,17,W/2] 与 simcc_y [1,17,H/2] */
+        Object outX = result.get(0).getValue();
+        Object outY = result.get(1).getValue();
+
+        if (!(outX instanceof float[][]) || !(outY instanceof float[][]))
+        {
+            throw new APIException(APIException.ErrorCode.LOCAL_INFERENCE_ERROR,
+                "RTMPose 输出结构异常，期望 simcc_x / simcc_y 两个浮点输出");
+        }
+
+        float[][] simccX = (float[][]) outX;
+        float[][] simccY = (float[][]) outY;
 
         PoseKeypoints keypoints = new PoseKeypoints(sourceFrame);
 
@@ -429,45 +438,6 @@ public class LocalPoseEstimator implements AutoCloseable
         keypoints.frameConfidence = keypoints.averageConfidence();
 
         return keypoints;
-    }
-
-    /**
-     * 按名称优先取输出张量的值（旧导出可能没有命名或顺序不同，按约定下标兜底）
-     */
-    private Object outputValue(OrtSession.Result result, String name, int index) throws OrtException
-    {
-        try
-        {
-            ai.onnxruntime.OnnxValue value = result.get(name).orElse(null);
-
-            if (value != null)
-            {
-                return value.getValue();
-            }
-        }
-        catch (OrtException e)
-        {}
-
-        return result.get(index).getValue();
-    }
-
-    /**
-     * SimCC 输出矩阵：兼容 [17,N] 与带 batch 维的 [1,17,N] 两种导出
-     */
-    private float[][] simccMatrix(Object raw) throws APIException
-    {
-        if (raw instanceof float[][][])
-        {
-            return ((float[][][]) raw)[0];
-        }
-
-        if (raw instanceof float[][])
-        {
-            return (float[][]) raw;
-        }
-
-        throw new APIException(APIException.ErrorCode.LOCAL_INFERENCE_ERROR,
-            "RTMPose 输出结构异常，期望 simcc_x / simcc_y 两个浮点输出");
     }
 
     /**

@@ -65,6 +65,16 @@ public class BBSAISettings
      */
     public static ValueInt aiMaxTokens;
 
+    /**
+     * 是否把 mod 环境摘要注入 AI 提示词（插件调用设置）
+     */
+    public static ValueBoolean pluginsContextEnabled;
+
+    /**
+     * 禁用的 mod 适配器 id 列表（逗号分隔，插件调用设置）
+     */
+    public static ValueString pluginsAdaptersDisabled;
+
     /* ====================================================================
      * 本地骨骼识别设置
      * ==================================================================== */
@@ -200,11 +210,21 @@ public class BBSAISettings
     private static boolean syncing;
 
     /**
+     * 应用插件调用设置到各管理器（初始化与设置变更时调用）
+     */
+    public static void applyPluginSettings()
+    {
+        mchorse.bbs_ai.mods.AIContextService.get().setModContextEnabled(pluginsContextEnabled.get());
+        mchorse.bbs_ai.compat.ModAdapterManager.applyDisabledList(pluginsAdaptersDisabled.get());
+    }
+
+    /**
      * 注册全部设置【原版兼容】（由 BBSMod.setupConfig 调用）
      */
     public static void register(SettingsBuilder builder)
     {
         registerAiCategory(builder);
+        registerPluginsCategory(builder);
         registerMotionCategory(builder);
         registerPreviewCategory(builder);
         registerImportCategory(builder);
@@ -227,6 +247,14 @@ public class BBSAISettings
         aiModel.postCallback(aiSync);
         aiTemperature.postCallback(aiSync);
         aiMaxTokens.postCallback(aiSync);
+
+        /* 插件调用设置变更即时生效（上下文注入 / 适配器开关） */
+        pluginsContextEnabled.postCallback((value, flag) -> applyPluginSettings());
+        pluginsAdaptersDisabled.postCallback((value, flag) ->
+        {
+            applyPluginSettings();
+            mchorse.bbs_ai.mods.AIContextService.get().invalidate();
+        });
     }
 
     /**
@@ -242,6 +270,17 @@ public class BBSAISettings
         aiModel = builder.getString("model", mchorse.bbs_ai.core.AIConfig.Provider.OPENAI.defaultModel);
         aiTemperature = builder.getFloat("temperature", 0.7F, 0.0F, 2.0F).slider(0.05D);
         aiMaxTokens = builder.getInt("max_tokens", 4096, 256, 8192).slider();
+    }
+
+    /**
+     * 插件调用设置分类（AI 对 mod 环境的感知与适配器）
+     */
+    private static void registerPluginsCategory(SettingsBuilder builder)
+    {
+        builder.category("plugins");
+
+        pluginsContextEnabled = builder.getBoolean("context_enabled", true);
+        pluginsAdaptersDisabled = builder.getString("adapters_disabled", "");
     }
 
     /**
