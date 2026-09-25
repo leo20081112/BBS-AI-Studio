@@ -547,6 +547,11 @@ public class BBSMod implements ModInitializer
 
         Registry.register(Registries.ITEM_GROUP, Identifier.of(MOD_ID, "main"), ITEM_GROUP);
 
+        /* 【BBS AI Studio 底层集成】AI 核心作为基础层随主初始化启动：
+         * AI 服务 / 设置 / 导入预览 / Mod 兼容扫描 / 命令，详见 mchorse.bbs_mod.ai.AICore。
+         * 必须在 BBSReadyEvent 之前，保证 ready 时的 addon 已能使用 AI 门面。 */
+        mchorse.bbs_mod.ai.AICore.initialize();
+
         events.post(new BBSReadyEvent());
     }
 

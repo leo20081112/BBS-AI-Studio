@@ -1,0 +1,9 @@
+{
+    "top_height": 40,
+    "bottom_height": 18,
+    "library_width": 200,
+    "property_width": 150,
+    "panel_spacing": 6,
+    "panel_rounding": 4,
+    "shadow_strength": 0.2
+}
